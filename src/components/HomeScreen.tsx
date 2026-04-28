@@ -168,34 +168,170 @@ function PostCard({ post }: { post: typeof POSTS[0] }) {
 }
 
 /* ── BUSCAR ── */
+const FILTER_TYPES = ["Balada", "Bar", "Pagode", "Sertanejo", "Eletrônica", "Boteco", "Show", "Rock", "Jazz", "Techno", "Funk", "MPB"];
+
+function toggle<T>(arr: T[], val: T): T[] {
+  return arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
+}
+
 function SearchTab({ venues, loading }: { venues: Venue[]; loading: boolean }) {
   const [query, setQuery] = useState("");
-  const filtered = venues.filter((v) =>
-    query === "" ||
-    v.name.toLowerCase().includes(query.toLowerCase()) ||
-    v.hood.toLowerCase().includes(query.toLowerCase()) ||
-    (v.tags || []).some((t) => t.toLowerCase().includes(query.toLowerCase()))
-  );
+  const [viewMode, setViewMode] = useState<"list" | "map">("list");
+  const [showFilter, setShowFilter] = useState(false);
+  const [filterTypes, setFilterTypes] = useState<string[]>([]);
+  const [filterPrices, setFilterPrices] = useState<string[]>([]);
+  const [filterOcc, setFilterOcc] = useState<string[]>([]);
+
+  const activeFilters = filterTypes.length + filterPrices.length + filterOcc.length;
+
+  const filtered = venues.filter((v) => {
+    const matchQuery =
+      query === "" ||
+      v.name.toLowerCase().includes(query.toLowerCase()) ||
+      v.hood.toLowerCase().includes(query.toLowerCase()) ||
+      (v.tags || []).some((t) => t.toLowerCase().includes(query.toLowerCase()));
+    const matchType = filterTypes.length === 0 || (v.tags || []).some((t) => filterTypes.includes(t));
+    const matchPrice = filterPrices.length === 0 || filterPrices.includes(v.price);
+    const matchOcc = filterOcc.length === 0 || filterOcc.includes(occInfo(v.occ).label);
+    return matchQuery && matchType && matchPrice && matchOcc;
+  });
+
+  function clearFilters() {
+    setFilterTypes([]);
+    setFilterPrices([]);
+    setFilterOcc([]);
+  }
 
   return (
     <div style={{ padding: "16px 20px" }}>
       <div style={{ fontSize: 22, fontWeight: 900, color: "var(--txt)", marginBottom: 16 }}>Buscar</div>
-      <div style={{ display: "flex", alignItems: "center", background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 14, padding: "0 14px", gap: 10, marginBottom: 20 }}>
-        <span style={{ color: "var(--mt)" }}>🔍</span>
-        <input style={{ flex: 1, background: "transparent", border: "none", color: "var(--txt)", fontSize: 14, padding: "13px 0", outline: "none" }}
-          placeholder="Rolê, bairro, estilo..." value={query} onChange={(e) => setQuery(e.target.value)} />
+
+      {/* Search + map + filter */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 20, alignItems: "center" }}>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 14, padding: "0 14px", gap: 10 }}>
+          <span style={{ color: "var(--mt)" }}>🔍</span>
+          <input style={{ flex: 1, background: "transparent", border: "none", color: "var(--txt)", fontSize: 14, padding: "13px 0", outline: "none" }}
+            placeholder="Rolê, bairro, estilo..." value={query} onChange={(e) => setQuery(e.target.value)} />
+        </div>
+
+        <button onClick={() => setViewMode(viewMode === "list" ? "map" : "list")} style={{ width: 48, height: 48, borderRadius: 14, flexShrink: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", border: "0.5px solid", borderColor: viewMode === "map" ? "var(--p)" : "var(--bd)", background: viewMode === "map" ? "var(--pd)" : "var(--card)", color: viewMode === "map" ? "var(--p)" : "var(--mt)" }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
+            <line x1="9" y1="3" x2="9" y2="18" />
+            <line x1="15" y1="6" x2="15" y2="21" />
+          </svg>
+        </button>
+
+        <button onClick={() => setShowFilter(true)} style={{ position: "relative", width: 48, height: 48, borderRadius: 14, flexShrink: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", border: "0.5px solid", borderColor: activeFilters > 0 ? "var(--p)" : "var(--bd)", background: activeFilters > 0 ? "var(--pd)" : "var(--card)", color: activeFilters > 0 ? "var(--p)" : "var(--mt)" }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="4" y1="6" x2="20" y2="6" />
+            <line x1="8" y1="12" x2="16" y2="12" />
+            <line x1="11" y1="18" x2="13" y2="18" />
+          </svg>
+          {activeFilters > 0 && (
+            <div style={{ position: "absolute", top: 7, right: 7, width: 15, height: 15, borderRadius: "50%", background: "var(--p)", color: "#fff", fontSize: 9, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {activeFilters}
+            </div>
+          )}
+        </button>
       </div>
 
-      {loading ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-          {[1, 2, 3].map((i) => (
-            <div key={i} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, padding: 14, height: 88 }} />
-          ))}
+      {/* Map view */}
+      {viewMode === "map" && (
+        <div style={{ borderRadius: 18, overflow: "hidden", border: "0.5px solid var(--bd)", marginBottom: 16 }}>
+          <iframe
+            src="https://www.openstreetmap.org/export/embed.html?bbox=-46.71%2C-23.62%2C-46.55%2C-23.50&layer=mapnik"
+            style={{ width: "100%", height: 420, border: "none", display: "block" }}
+            title="Mapa São Paulo"
+          />
+          <div style={{ background: "var(--card)", padding: "10px 14px", fontSize: 12, color: "var(--mt)", textAlign: "center" }}>
+            Marcadores dos rolês chegam em breve ·{" "}
+            <a href="https://www.openstreetmap.org/#map=13/-23.555/-46.630" target="_blank" rel="noopener noreferrer" style={{ color: "var(--p)" }}>
+              Abrir completo
+            </a>
+          </div>
         </div>
-      ) : (
+      )}
+
+      {/* List view */}
+      {viewMode === "list" && (
+        loading ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+            {[1, 2, 3].map((i) => (
+              <div key={i} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, padding: 14, height: 88 }} />
+            ))}
+          </div>
+        ) : (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ fontSize: 9, color: "var(--mt)", fontWeight: 900, letterSpacing: 1 }}>{filtered.length} LUGARES</div>
+              {activeFilters > 0 && (
+                <button onClick={clearFilters} style={{ background: "none", border: "none", color: "var(--p)", fontSize: 12, cursor: "pointer" }}>
+                  Limpar filtros
+                </button>
+              )}
+            </div>
+            {filtered.map((v) => <VenueCard key={v.id} venue={v} />)}
+            {filtered.length === 0 && (
+              <div style={{ textAlign: "center", paddingTop: 40, color: "var(--mt)" }}>
+                <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
+                <div style={{ fontWeight: 900 }}>Nenhum lugar encontrado</div>
+                <div style={{ fontSize: 13, marginTop: 6 }}>Tente outros filtros</div>
+              </div>
+            )}
+          </>
+        )
+      )}
+
+      {/* Filter bottom sheet */}
+      {showFilter && (
         <>
-          <div style={{ fontSize: 9, color: "var(--mt)", fontWeight: 900, letterSpacing: 1, marginBottom: 12 }}>{filtered.length} LUGARES</div>
-          {filtered.map((v) => <VenueCard key={v.id} venue={v} />)}
+          <div onClick={() => setShowFilter(false)} style={{ position: "fixed", inset: 0, background: "#00000080", zIndex: 40 }} />
+          <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, background: "var(--surf)", borderRadius: "24px 24px 0 0", border: "0.5px solid var(--bd)", zIndex: 50, padding: "20px 20px 48px", maxHeight: "85vh", overflowY: "auto" }}>
+            <div style={{ width: 36, height: 3, background: "var(--bd)", borderRadius: 2, margin: "0 auto 20px" }} />
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: "var(--txt)" }}>Filtrar</div>
+              <button onClick={clearFilters} style={{ background: "none", border: "none", color: "var(--mt)", fontSize: 13, cursor: "pointer" }}>Limpar tudo</button>
+            </div>
+
+            <div style={{ marginBottom: 22 }}>
+              <div style={{ fontSize: 11, fontWeight: 900, color: "var(--mt)", letterSpacing: 0.5, marginBottom: 10 }}>TIPO DE ROLÊ</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {FILTER_TYPES.map((t) => (
+                  <span key={t} onClick={() => setFilterTypes(toggle(filterTypes, t))} style={{ padding: "8px 14px", borderRadius: 20, fontSize: 13, cursor: "pointer", background: filterTypes.includes(t) ? "var(--pd)" : "#12122A", color: filterTypes.includes(t) ? "var(--p)" : "var(--mt)", border: `0.5px solid ${filterTypes.includes(t) ? "#9D4EDD" : "var(--bd)"}`, fontWeight: filterTypes.includes(t) ? 700 : 400 }}>
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 22 }}>
+              <div style={{ fontSize: 11, fontWeight: 900, color: "var(--mt)", letterSpacing: 0.5, marginBottom: 10 }}>FAIXA DE PREÇO</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                {["$", "$$", "$$$"].map((p) => (
+                  <span key={p} onClick={() => setFilterPrices(toggle(filterPrices, p))} style={{ padding: "8px 22px", borderRadius: 20, fontSize: 14, cursor: "pointer", fontWeight: 900, background: filterPrices.includes(p) ? "var(--pd)" : "#12122A", color: filterPrices.includes(p) ? "var(--p)" : "var(--mt)", border: `0.5px solid ${filterPrices.includes(p) ? "#9D4EDD" : "var(--bd)"}` }}>
+                    {p}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ fontSize: 11, fontWeight: 900, color: "var(--mt)", letterSpacing: 0.5, marginBottom: 10 }}>OCUPAÇÃO AGORA</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {[{ label: "Tranquilo", color: "#22C55E" }, { label: "Médio", color: "#F59E0B" }, { label: "Cheio", color: "#F59E0B" }, { label: "Lotado", color: "#EF4444" }].map(({ label, color }) => (
+                  <span key={label} onClick={() => setFilterOcc(toggle(filterOcc, label))} style={{ padding: "8px 14px", borderRadius: 20, fontSize: 13, cursor: "pointer", background: filterOcc.includes(label) ? color + "20" : "#12122A", color: filterOcc.includes(label) ? color : "var(--mt)", border: `0.5px solid ${filterOcc.includes(label) ? color + "60" : "var(--bd)"}`, fontWeight: filterOcc.includes(label) ? 700 : 400 }}>
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <button className="btn-primary" onClick={() => setShowFilter(false)}>
+              Ver {filtered.length} {filtered.length === 1 ? "lugar" : "lugares"}
+            </button>
+          </div>
         </>
       )}
     </div>
