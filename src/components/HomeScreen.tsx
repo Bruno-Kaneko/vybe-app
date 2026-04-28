@@ -1,38 +1,88 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BottomNav from "./BottomNav";
+import { supabase } from "@/lib/supabase";
 
 type Tab = "home" | "search" | "chat" | "loja" | "perfil";
 
+type Venue = {
+  id: number;
+  name: string;
+  hood: string;
+  address: string;
+  tags: string[];
+  price: string;
+  close_time: string;
+  entry: string;
+  parking: boolean;
+  transit: string;
+  has_seat: boolean;
+  vibe_type: string;
+  color: string;
+  initial: string;
+  occ: number;
+  image_url: string | null;
+};
+
+function occInfo(occ: number) {
+  if (occ >= 86) return { color: "#EF4444", label: "Lotado" };
+  if (occ >= 66) return { color: "#F59E0B", label: "Cheio" };
+  if (occ >= 41) return { color: "#F59E0B", label: "Médio" };
+  return { color: "#22C55E", label: "Tranquilo" };
+}
+
+function VenueAvatar({ v, size = 46 }: { v: Venue; size?: number }) {
+  return (
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <div style={{ position: "absolute", inset: 0, borderRadius: "50%", background: v.color + "20", border: `0.5px solid ${v.color}40`, overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.3, fontWeight: 900, color: v.color }}>
+        {v.image_url
+          ? <img src={v.image_url} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          : v.initial}
+      </div>
+    </div>
+  );
+}
+
 export default function HomeScreen() {
   const [tab, setTab] = useState<Tab>("home");
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [loadingVenues, setLoadingVenues] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("venues")
+      .select("*")
+      .eq("status", "aprovado")
+      .order("name")
+      .then(({ data }) => {
+        if (data) setVenues(data as Venue[]);
+        setLoadingVenues(false);
+      });
+  }, []);
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column" }}>
-      {/* Conteúdo da aba atual */}
       <div style={{ flex: 1, overflowY: "auto", paddingBottom: 80 }}>
-        {tab === "home" && <FeedTab />}
-        {tab === "search" && <SearchTab />}
+        {tab === "home" && <FeedTab venues={venues} loading={loadingVenues} />}
+        {tab === "search" && <SearchTab venues={venues} loading={loadingVenues} />}
         {tab === "chat" && <ChatTab />}
         {tab === "loja" && <LojaTab />}
         {tab === "perfil" && <PerfilTab />}
       </div>
-
       <BottomNav active={tab} onChange={(t) => setTab(t as Tab)} />
     </div>
   );
 }
 
 /* ── FEED ── */
-function FeedTab() {
+function FeedTab({ venues, loading }: { venues: Venue[]; loading: boolean }) {
   return (
     <div style={{ padding: "16px 20px" }}>
-      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
           <span style={{ fontSize: 14, color: "var(--pk)" }}>📍</span>
-          <span style={{ fontSize: 15, fontWeight: 900, color: "var(--txt)" }}>Pinheiros, SP</span>
+          <span style={{ fontSize: 15, fontWeight: 900, color: "var(--txt)" }}>São Paulo, SP</span>
           <span style={{ fontSize: 11, color: "var(--mt)" }}>▾</span>
         </div>
         <div style={{ width: 38, height: 38, borderRadius: "50%", background: "var(--p)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: "#fff", cursor: "pointer" }}>
@@ -40,39 +90,46 @@ function FeedTab() {
         </div>
       </div>
 
-      {/* Stories */}
-      <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 16, marginBottom: 8 }}>
-        {VENUES.map((v) => (
-          <div key={v.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>
-            <div style={{ position: "relative", width: 58, height: 58 }}>
-              {v.story && (
-                <div style={{ position: "absolute", inset: -3, borderRadius: "50%", background: "conic-gradient(#FF006E, #9D4EDD, #00D9FF, #FF006E)" }} />
-              )}
-              <div style={{ position: "absolute", inset: v.story ? 2 : 0, borderRadius: "50%", background: v.color + "25", border: v.story ? "2px solid var(--bg)" : "0.5px solid var(--bd)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: v.color }}>
-                {v.initial}
-              </div>
+      {/* Stories dos lugares */}
+      {loading ? (
+        <div style={{ display: "flex", gap: 14, paddingBottom: 16, marginBottom: 8 }}>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>
+              <div style={{ width: 58, height: 58, borderRadius: "50%", background: "#1E1E38" }} />
+              <div style={{ width: 42, height: 8, borderRadius: 4, background: "#1E1E38" }} />
             </div>
-            <span style={{ fontSize: 10, color: "var(--mt)", maxWidth: 58, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.name}</span>
-          </div>
-        ))}
+          ))}
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 16, marginBottom: 8 }}>
+          {venues.map((v) => (
+            <div key={v.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>
+              <VenueAvatar v={v} size={58} />
+              <span style={{ fontSize: 10, color: "var(--mt)", maxWidth: 58, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Posts */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {POSTS.map((post) => <PostCard key={post.id} post={post} />)}
       </div>
 
-      {/* Posts do feed */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {POSTS.map((post) => (
-          <PostCard key={post.id} post={post} />
-        ))}
-      </div>
+      {!loading && venues.length === 0 && (
+        <div style={{ textAlign: "center", paddingTop: 40, color: "var(--mt)" }}>
+          <div style={{ fontSize: 36, marginBottom: 10 }}>🏙️</div>
+          <div style={{ fontWeight: 900 }}>Nenhum lugar por aqui ainda</div>
+        </div>
+      )}
     </div>
   );
 }
 
 function PostCard({ post }: { post: typeof POSTS[0] }) {
   const [liked, setLiked] = useState(false);
-
   return (
     <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, overflow: "hidden" }}>
-      {/* Autor */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px" }}>
         <div style={{ width: 36, height: 36, borderRadius: "50%", background: post.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: "#fff", flexShrink: 0 }}>
           {post.initial}
@@ -82,22 +139,15 @@ function PostCard({ post }: { post: typeof POSTS[0] }) {
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--txt)" }}>{post.user}</span>
             <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 10, background: post.statusBg, color: post.statusColor, fontWeight: 700 }}>{post.status}</span>
           </div>
-          <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+          <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>
             <span style={{ color: "var(--pk)" }}>📍</span> {post.venue}
           </div>
         </div>
-        {/* Timer */}
-        <div style={{ fontSize: 10, color: "var(--mt)", background: "#1A1A35", padding: "4px 8px", borderRadius: 8 }}>
-          {post.timer}
-        </div>
+        <div style={{ fontSize: 10, color: "var(--mt)", background: "#1A1A35", padding: "4px 8px", borderRadius: 8 }}>{post.timer}</div>
       </div>
-
-      {/* Foto */}
       <div style={{ width: "100%", aspectRatio: "4/5", background: post.photoBg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 64 }}>
         {post.emoji}
       </div>
-
-      {/* Ações */}
       <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 16 }}>
         <button onClick={() => setLiked(!liked)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: liked ? "var(--pk)" : "var(--mt)", fontSize: 13 }}>
           <span style={{ fontSize: 20 }}>{liked ? "♥" : "♡"}</span>
@@ -108,11 +158,9 @@ function PostCard({ post }: { post: typeof POSTS[0] }) {
         </button>
         <div style={{ marginLeft: "auto", fontSize: 11, color: "var(--mt)" }}>{post.time}</div>
       </div>
-
       {post.caption && (
         <div style={{ padding: "0 14px 12px", fontSize: 13, color: "var(--txt)", lineHeight: 1.5 }}>
-          <span style={{ fontWeight: 700, color: "var(--txt)" }}>{post.user.split(" ")[0]} </span>
-          {post.caption}
+          <span style={{ fontWeight: 700 }}>{post.user.split(" ")[0]} </span>{post.caption}
         </div>
       )}
     </div>
@@ -120,10 +168,13 @@ function PostCard({ post }: { post: typeof POSTS[0] }) {
 }
 
 /* ── BUSCAR ── */
-function SearchTab() {
+function SearchTab({ venues, loading }: { venues: Venue[]; loading: boolean }) {
   const [query, setQuery] = useState("");
-  const filtered = VENUES.filter((v) =>
-    query === "" || v.name.toLowerCase().includes(query.toLowerCase()) || v.hood.toLowerCase().includes(query.toLowerCase())
+  const filtered = venues.filter((v) =>
+    query === "" ||
+    v.name.toLowerCase().includes(query.toLowerCase()) ||
+    v.hood.toLowerCase().includes(query.toLowerCase()) ||
+    (v.tags || []).some((t) => t.toLowerCase().includes(query.toLowerCase()))
   );
 
   return (
@@ -131,38 +182,43 @@ function SearchTab() {
       <div style={{ fontSize: 22, fontWeight: 900, color: "var(--txt)", marginBottom: 16 }}>Buscar</div>
       <div style={{ display: "flex", alignItems: "center", background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 14, padding: "0 14px", gap: 10, marginBottom: 20 }}>
         <span style={{ color: "var(--mt)" }}>🔍</span>
-        <input
-          style={{ flex: 1, background: "transparent", border: "none", color: "var(--txt)", fontSize: 14, padding: "13px 0", outline: "none" }}
-          placeholder="Rolê, bairro, estilo..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <input style={{ flex: 1, background: "transparent", border: "none", color: "var(--txt)", fontSize: 14, padding: "13px 0", outline: "none" }}
+          placeholder="Rolê, bairro, estilo..." value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
-      <div style={{ fontSize: 9, color: "var(--mt)", fontWeight: 900, letterSpacing: 1, marginBottom: 12 }}>{filtered.length} LUGARES</div>
-      {filtered.map((v) => <VenueCard key={v.id} venue={v} />)}
+
+      {loading ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+          {[1, 2, 3].map((i) => (
+            <div key={i} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, padding: 14, height: 88 }} />
+          ))}
+        </div>
+      ) : (
+        <>
+          <div style={{ fontSize: 9, color: "var(--mt)", fontWeight: 900, letterSpacing: 1, marginBottom: 12 }}>{filtered.length} LUGARES</div>
+          {filtered.map((v) => <VenueCard key={v.id} venue={v} />)}
+        </>
+      )}
     </div>
   );
 }
 
-function VenueCard({ venue: v }: { venue: typeof VENUES[0] }) {
+function VenueCard({ venue: v }: { venue: Venue }) {
   const [fav, setFav] = useState(false);
+  const { color: occColor, label: occLabel } = occInfo(v.occ);
+
   return (
     <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, padding: 14, marginBottom: 11, cursor: "pointer" }}>
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
-        <div style={{ position: "relative", width: 46, height: 46, flexShrink: 0 }}>
-          {v.story && <div style={{ position: "absolute", inset: -3, borderRadius: "50%", background: "conic-gradient(#FF006E,#9D4EDD,#00D9FF,#FF006E)" }} />}
-          <div style={{ position: "absolute", inset: v.story ? 2 : 0, borderRadius: "50%", background: v.color + "20", border: v.story ? "2px solid var(--bg)" : "none", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 900, color: v.color }}>
-            {v.initial}
-          </div>
-        </div>
+        <VenueAvatar v={v} size={46} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <span style={{ fontWeight: 900, fontSize: 15, color: "var(--txt)" }}>{v.name}</span>
             <span style={{ fontSize: 11, color: "var(--mt)" }}>· {v.hood}</span>
-            <span style={{ fontSize: 11, color: "var(--mt)" }}>· 📍 {v.dist}</span>
           </div>
           <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 6 }}>
-            {v.tags.map((t) => <span key={t} style={{ display: "inline-block", background: "var(--pd)", color: "var(--p)", fontSize: 10, padding: "3px 9px", borderRadius: 20, border: "0.5px solid #9D4EDD44", fontWeight: 700 }}>{t}</span>)}
+            {(v.tags || []).map((t) => (
+              <span key={t} style={{ display: "inline-block", background: "var(--pd)", color: "var(--p)", fontSize: 10, padding: "3px 9px", borderRadius: 20, border: "0.5px solid #9D4EDD44", fontWeight: 700 }}>{t}</span>
+            ))}
           </div>
         </div>
         <span onClick={(e) => { e.stopPropagation(); setFav(!fav); }} style={{ color: fav ? "var(--pk)" : "var(--mt)", fontSize: 20, cursor: "pointer", flexShrink: 0 }}>
@@ -171,9 +227,9 @@ function VenueCard({ venue: v }: { venue: typeof VENUES[0] }) {
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div style={{ flex: 1, background: "#1A1A35", borderRadius: 4, height: 5 }}>
-          <div style={{ width: `${v.occ}%`, background: v.occColor, borderRadius: 4, height: 5 }} />
+          <div style={{ width: `${v.occ}%`, background: occColor, borderRadius: 4, height: 5 }} />
         </div>
-        <span style={{ fontSize: 11, color: v.occColor, fontWeight: 900, whiteSpace: "nowrap" }}>{v.occLabel}</span>
+        <span style={{ fontSize: 11, color: occColor, fontWeight: 900, whiteSpace: "nowrap" }}>{occLabel}</span>
         <span style={{ fontSize: 14, color: "var(--txt)", fontWeight: 900, letterSpacing: 1 }}>{v.price}</span>
       </div>
     </div>
@@ -199,19 +255,12 @@ function ChatTab() {
             <div style={{ fontSize: 13, color: "var(--mt)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.last}</div>
           </div>
           {c.unread > 0 && (
-            <div style={{ width: 20, height: 20, borderRadius: "50%", background: "var(--p)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: "#fff", flexShrink: 0 }}>
+            <div style={{ width: 20, height: 20, borderRadius: "50%", background: "var(--p)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: "#fff" }}>
               {c.unread}
             </div>
           )}
         </div>
       ))}
-      {CHATS.length === 0 && (
-        <div style={{ textAlign: "center", paddingTop: 60, color: "var(--mt)" }}>
-          <div style={{ fontSize: 44, marginBottom: 14 }}>💬</div>
-          <div style={{ fontWeight: 900 }}>Nenhuma conversa ainda</div>
-          <div style={{ fontSize: 13, marginTop: 6 }}>Vá a um rolê e comece a interagir!</div>
-        </div>
-      )}
     </div>
   );
 }
@@ -226,7 +275,6 @@ function LojaTab() {
     { n: "Fura-fila (1 uso)", pts: 150, e: "⚡" },
     { n: "Revelar curtida extra", pts: 100, e: "👀" },
   ];
-
   return (
     <div style={{ padding: "16px 20px" }}>
       <div style={{ fontSize: 22, fontWeight: 900, color: "var(--txt)", marginBottom: 16 }}>Lojinha</div>
@@ -247,9 +295,7 @@ function LojaTab() {
             <span style={{ fontSize: 26 }}>{item.e}</span>
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--txt)" }}>{item.n}</div>
-              <div style={{ fontSize: 12, color: item.pts <= myPts ? "var(--p)" : "var(--mt)", fontWeight: 900, marginTop: 2 }}>
-                {item.pts} pts{item.pts > myPts ? " · insuficiente" : ""}
-              </div>
+              <div style={{ fontSize: 12, color: item.pts <= myPts ? "var(--p)" : "var(--mt)", fontWeight: 900, marginTop: 2 }}>{item.pts} pts{item.pts > myPts ? " · insuficiente" : ""}</div>
             </div>
           </div>
           <button style={{ background: item.pts <= myPts ? "var(--p)" : "#1A1A35", color: item.pts <= myPts ? "#fff" : "var(--mt)", border: "none", borderRadius: 10, padding: "8px 12px", fontSize: 12, fontWeight: 700, cursor: item.pts <= myPts ? "pointer" : "default" }}>
@@ -274,27 +320,17 @@ function PerfilTab() {
   return (
     <div style={{ padding: "16px 20px" }}>
       <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <div style={{ width: 82, height: 82, borderRadius: "50%", background: "var(--p)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 900, color: "#fff", margin: "0 auto 14px" }}>
-          J
-        </div>
+        <div style={{ width: 82, height: 82, borderRadius: "50%", background: "var(--p)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 900, color: "#fff", margin: "0 auto 14px" }}>J</div>
         <div style={{ fontSize: 22, fontWeight: 900, color: "var(--txt)" }}>João Silva</div>
         <div style={{ fontSize: 13, color: "var(--mt)", marginTop: 4 }}>Pinheiros · 26 anos</div>
-        {/* Badge de status */}
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 20, padding: "6px 14px", cursor: "pointer" }}
           onClick={() => setStatus((s) => (s + 1) % STATUS_OPTIONS.length)}>
           <span>{STATUS_OPTIONS[status].dot}</span>
           <span style={{ fontSize: 12, fontWeight: 700, color: STATUS_OPTIONS[status].color }}>{STATUS_OPTIONS[status].label}</span>
         </div>
       </div>
-
-      {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
-        {[
-          { l: "Rolês visitados", v: "12", e: "📍" },
-          { l: "Avaliações", v: "8", e: "⭐" },
-          { l: "Seguidores", v: "84", e: "👥" },
-          { l: "Curtidas recebidas", v: "5", e: "💘" },
-        ].map((s) => (
+        {[{ l: "Rolês visitados", v: "12", e: "📍" }, { l: "Avaliações", v: "8", e: "⭐" }, { l: "Seguidores", v: "84", e: "👥" }, { l: "Curtidas recebidas", v: "5", e: "💘" }].map((s) => (
           <div key={s.l} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 14, padding: 14, textAlign: "center" }}>
             <div style={{ fontSize: 22, marginBottom: 4 }}>{s.e}</div>
             <div style={{ fontSize: 24, fontWeight: 900, color: "var(--txt)" }}>{s.v}</div>
@@ -302,15 +338,8 @@ function PerfilTab() {
           </div>
         ))}
       </div>
-
-      {/* Menu */}
       <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, overflow: "hidden" }}>
-        {[
-          { l: "Editar perfil", e: "✏️" },
-          { l: "Privacidade", e: "🔒" },
-          { l: "Notificações", e: "🔔" },
-          { l: "Suporte", e: "💬" },
-        ].map((item, i, arr) => (
+        {[{ l: "Editar perfil", e: "✏️" }, { l: "Privacidade", e: "🔒" }, { l: "Notificações", e: "🔔" }, { l: "Suporte", e: "💬" }].map((item, i, arr) => (
           <div key={item.l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "15px 16px", cursor: "pointer", borderBottom: i < arr.length - 1 ? "0.5px solid var(--bd)" : "none" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <span style={{ fontSize: 16 }}>{item.e}</span>
@@ -324,14 +353,7 @@ function PerfilTab() {
   );
 }
 
-/* ── DADOS MOCK ── */
-const VENUES = [
-  { id: 1, name: "Cine Joia", hood: "Liberdade", dist: "1,2 km", occ: 85, occColor: "#EF4444", occLabel: "Lotado", price: "$$", tags: ["Eletrônica", "House"], story: true, initial: "CJ", color: "#9D4EDD" },
-  { id: 2, name: "Bar Brahma", hood: "Centro", dist: "2,8 km", occ: 50, occColor: "#F59E0B", occLabel: "Médio", price: "$$", tags: ["MPB", "Samba"], story: false, initial: "BB", color: "#00D9FF" },
-  { id: 3, name: "D-Edge", hood: "Barra Funda", dist: "4,1 km", occ: 30, occColor: "#22C55E", occLabel: "Tranquilo", price: "$$$", tags: ["Techno", "Dark"], story: true, initial: "DE", color: "#FF006E" },
-  { id: 4, name: "Yacht Club", hood: "Itaim Bibi", dist: "3,5 km", occ: 70, occColor: "#F59E0B", occLabel: "Cheio", price: "$$$", tags: ["Pop", "Funk"], story: true, initial: "YC", color: "#F59E0B" },
-];
-
+/* ── MOCK DATA (posts e chats — conectar ao banco depois) ── */
 const POSTS = [
   { id: 1, user: "Ana Ribeiro", initial: "A", color: "#9D4EDD", status: "🟢 Solteira", statusBg: "#22C55E20", statusColor: "#22C55E", venue: "Cine Joia", timer: "3h restantes", photoBg: "#9D4EDD15", emoji: "🎵", likes: 24, comments: 6, time: "há 20 min", caption: "Que noite incrível aqui! 🔥" },
   { id: 2, user: "Pedro Melo", initial: "P", color: "#00D9FF", status: "😎 Só curtindo", statusBg: "#00D9FF20", statusColor: "#00D9FF", venue: "Bar Brahma", timer: "1h restante", photoBg: "#00D9FF15", emoji: "🍺", likes: 11, comments: 2, time: "há 1h", caption: "Pagode no Brahma tá demais 🎶" },
