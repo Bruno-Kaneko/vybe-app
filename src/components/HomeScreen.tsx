@@ -453,6 +453,7 @@ function SearchTab({ venues, loading }: { venues: Venue[]; loading: boolean }) {
   const [filterTypes, setFilterTypes] = useState<string[]>([]);
   const [filterPrices, setFilterPrices] = useState<string[]>([]);
   const [filterOcc, setFilterOcc] = useState<string[]>([]);
+  const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
 
   const activeFilters = filterTypes.length + filterPrices.length + filterOcc.length;
 
@@ -540,7 +541,7 @@ function SearchTab({ venues, loading }: { venues: Venue[]; loading: boolean }) {
                 </button>
               )}
             </div>
-            {filtered.map((v) => <VenueCard key={v.id} venue={v} />)}
+            {filtered.map((v) => <VenueCard key={v.id} venue={v} onClick={() => setSelectedVenue(v)} />)}
             {filtered.length === 0 && (
               <div style={{ textAlign: "center", paddingTop: 40, color: "var(--mt)" }}>
                 <div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div>
@@ -601,16 +602,92 @@ function SearchTab({ venues, loading }: { venues: Venue[]; loading: boolean }) {
           </div>
         </>
       )}
+      {selectedVenue && <VenueDetailModal venue={selectedVenue} onClose={() => setSelectedVenue(null)} />}
     </div>
   );
 }
 
-function VenueCard({ venue: v }: { venue: Venue }) {
+/* ── DETALHE DO ROLÊ ── */
+function VenueDetailModal({ venue: v, onClose }: { venue: Venue; onClose: () => void }) {
+  const { color: occColor, label: occLabel } = occInfo(v.occ);
+
+  const infos = [
+    { e: "💰", label: "Preço", value: v.price },
+    { e: "🕒", label: "Fecha às", value: v.close_time || "—" },
+    { e: "🚇", label: "Transporte", value: v.transit || "—" },
+    { e: "🅿️", label: "Estacionamento", value: v.parking ? "Disponível" : "Sem vaga" },
+    { e: "🎫", label: "Entrada", value: v.entry || "Gratuita" },
+    { e: "🪑", label: "Assento", value: v.has_seat ? "Tem assento" : "Em pé" },
+  ];
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 70, overflowY: "auto" }}>
+      {/* Hero */}
+      <div style={{ position: "relative", width: "100%", height: 240, flexShrink: 0, overflow: "hidden", background: v.color + "18" }}>
+        {v.image_url
+          ? <img src={v.image_url} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 90, fontWeight: 900, color: v.color, opacity: 0.25 }}>{v.initial}</div>
+        }
+        <button onClick={onClose} style={{ position: "absolute", top: 52, left: 16, width: 40, height: 40, borderRadius: "50%", background: "#00000070", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(6px)" }}>
+          ←
+        </button>
+      </div>
+
+      {/* Conteúdo */}
+      <div style={{ padding: "20px 20px 48px" }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 26, fontWeight: 900, color: "var(--txt)", marginBottom: 4 }}>{v.name}</div>
+          <div style={{ fontSize: 14, color: "var(--mt)" }}>{v.hood}{v.vibe_type ? ` · ${v.vibe_type === "indoor" ? "Indoor" : "Outdoor"}` : ""}</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+            {(v.tags || []).map((t) => (
+              <span key={t} style={{ background: "var(--pd)", color: "var(--p)", fontSize: 11, padding: "4px 10px", borderRadius: 20, border: "0.5px solid #9D4EDD44", fontWeight: 700 }}>{t}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Lotação */}
+        <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 16, padding: 16, marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 900, color: "var(--mt)", letterSpacing: 0.5 }}>LOTAÇÃO AGORA</div>
+            <span style={{ fontSize: 13, color: occColor, fontWeight: 900 }}>{occLabel} · {v.occ}%</span>
+          </div>
+          <div style={{ background: "#1A1A35", borderRadius: 6, height: 8 }}>
+            <div style={{ width: `${v.occ}%`, background: occColor, borderRadius: 6, height: 8 }} />
+          </div>
+        </div>
+
+        {/* Grid de info */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+          {infos.map((item) => (
+            <div key={item.label} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 14, padding: "12px 14px" }}>
+              <div style={{ fontSize: 22, marginBottom: 6 }}>{item.e}</div>
+              <div style={{ fontSize: 11, color: "var(--mt)", marginBottom: 2 }}>{item.label}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--txt)" }}>{item.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Endereço */}
+        {v.address && (
+          <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 14, padding: "14px 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+            <span style={{ fontSize: 18, flexShrink: 0 }}>📍</span>
+            <div>
+              <div style={{ fontSize: 11, color: "var(--mt)", marginBottom: 2 }}>ENDEREÇO</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--txt)", lineHeight: 1.5 }}>{v.address}</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function VenueCard({ venue: v, onClick }: { venue: Venue; onClick: () => void }) {
   const [fav, setFav] = useState(false);
   const { color: occColor, label: occLabel } = occInfo(v.occ);
 
   return (
-    <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, padding: 14, marginBottom: 11, cursor: "pointer" }}>
+    <div onClick={onClick} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, padding: 14, marginBottom: 11, cursor: "pointer" }}>
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
         <VenueAvatar v={v} size={46} />
         <div style={{ flex: 1, minWidth: 0 }}>
