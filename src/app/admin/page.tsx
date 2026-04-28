@@ -277,7 +277,7 @@ export default function AdminPage() {
             <div>
               <label style={labelStyle}>PREÇO</label>
               <select style={inputStyle} value={form.price} onChange={(e) => set("price", e.target.value)}>
-                <option>$</option><option>$$</option><option>$$$</option>
+                <option>$</option><option>$$</option><option>$$$</option><option>$$$$</option><option>$$$$$</option>
               </select>
             </div>
             <div>

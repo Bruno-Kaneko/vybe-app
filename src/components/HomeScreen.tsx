@@ -577,8 +577,8 @@ function SearchTab({ venues, loading }: { venues: Venue[]; loading: boolean }) {
             <div style={{ marginBottom: 22 }}>
               <div style={{ fontSize: 11, fontWeight: 900, color: "var(--mt)", letterSpacing: 0.5, marginBottom: 10 }}>FAIXA DE PREÇO</div>
               <div style={{ display: "flex", gap: 8 }}>
-                {["$", "$$", "$$$"].map((p) => (
-                  <span key={p} onClick={() => setFilterPrices(toggle(filterPrices, p))} style={{ padding: "8px 22px", borderRadius: 20, fontSize: 14, cursor: "pointer", fontWeight: 900, background: filterPrices.includes(p) ? "var(--pd)" : "#12122A", color: filterPrices.includes(p) ? "var(--p)" : "var(--mt)", border: `0.5px solid ${filterPrices.includes(p) ? "#9D4EDD" : "var(--bd)"}` }}>
+                {["$", "$$", "$$$", "$$$$", "$$$$$"].map((p) => (
+                  <span key={p} onClick={() => setFilterPrices(toggle(filterPrices, p))} style={{ padding: "8px 14px", borderRadius: 20, fontSize: 13, cursor: "pointer", fontWeight: 900, background: filterPrices.includes(p) ? "var(--pd)" : "#12122A", color: filterPrices.includes(p) ? "var(--p)" : "var(--mt)", border: `0.5px solid ${filterPrices.includes(p) ? "#9D4EDD" : "var(--bd)"}` }}>
                     {p}
                   </span>
                 ))}
@@ -637,7 +637,7 @@ function VenueDetailModal({ venue: v, onClose }: { venue: Venue; onClose: () => 
       <div style={{ padding: "20px 20px 48px" }}>
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 26, fontWeight: 900, color: "var(--txt)", marginBottom: 4 }}>{v.name}</div>
-          <div style={{ fontSize: 14, color: "var(--mt)" }}>{v.hood}{v.vibe_type ? ` · ${v.vibe_type === "indoor" ? "Indoor" : "Outdoor"}` : ""}</div>
+          <div style={{ fontSize: 14, color: "var(--mt)" }}>{v.hood}</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
             {(v.tags || []).map((t) => (
               <span key={t} style={{ background: "var(--pd)", color: "var(--p)", fontSize: 11, padding: "4px 10px", borderRadius: 20, border: "0.5px solid #9D4EDD44", fontWeight: 700 }}>{t}</span>

@@ -45,7 +45,7 @@ export default function LoginPage() {
   return (
     <main style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 28px 40px" }}>
       <div style={{ width: "100%", maxWidth: 430 }}>
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 220, paddingLeft: 32 }}>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: 220, paddingLeft: 56 }}>
           <Logo />
         </div>
 
