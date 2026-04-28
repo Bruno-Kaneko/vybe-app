@@ -83,7 +83,7 @@ export default function HomeScreen({ onSignOut }: { onSignOut: () => void }) {
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column" }}>
       <div style={{ flex: 1, overflowY: "auto", paddingBottom: 80 }}>
-        {tab === "home" && <FeedTab venues={venues} loading={loadingVenues} />}
+        {tab === "home" && <FeedTab venues={venues} loading={loadingVenues} profile={profile} />}
         {tab === "search" && <SearchTab venues={venues} loading={loadingVenues} />}
         {tab === "chat" && <ChatTab />}
         {tab === "loja" && <LojaTab />}
@@ -95,7 +95,7 @@ export default function HomeScreen({ onSignOut }: { onSignOut: () => void }) {
 }
 
 /* ── FEED ── */
-function FeedTab({ venues, loading }: { venues: Venue[]; loading: boolean }) {
+function FeedTab({ venues, loading, profile }: { venues: Venue[]; loading: boolean; profile: Profile | null }) {
   return (
     <div style={{ padding: "16px 20px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
@@ -105,7 +105,7 @@ function FeedTab({ venues, loading }: { venues: Venue[]; loading: boolean }) {
           <span style={{ fontSize: 11, color: "var(--mt)" }}>▾</span>
         </div>
         <div style={{ width: 38, height: 38, borderRadius: "50%", background: "var(--p)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: "#fff", cursor: "pointer" }}>
-          J
+          {profile?.nome ? profile.nome.charAt(0).toUpperCase() : "?"}
         </div>
       </div>
 
