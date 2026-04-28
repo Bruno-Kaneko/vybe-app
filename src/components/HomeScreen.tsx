@@ -155,18 +155,53 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts }: {
   onGoToProfile: () => void;
   posts: RealPost[];
 }) {
+  const [selectedHood, setSelectedHood] = useState<string | null>(null);
+  const [showHoodPicker, setShowHoodPicker] = useState(false);
+
+  const hoods = [...new Set(venues.map((v) => v.hood))].sort();
+  const visibleVenues = selectedHood ? venues.filter((v) => v.hood === selectedHood) : venues;
+
   return (
     <div style={{ padding: "16px 20px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+        <div onClick={() => setShowHoodPicker(true)} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
           <span style={{ fontSize: 14, color: "var(--pk)" }}>📍</span>
-          <span style={{ fontSize: 15, fontWeight: 900, color: "var(--txt)" }}>São Paulo, SP</span>
+          <span style={{ fontSize: 15, fontWeight: 900, color: "var(--txt)" }}>{selectedHood ?? "São Paulo, SP"}</span>
           <span style={{ fontSize: 11, color: "var(--mt)" }}>▾</span>
         </div>
         <div onClick={onGoToProfile} style={{ width: 38, height: 38, borderRadius: "50%", background: "var(--p)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: "#fff", cursor: "pointer" }}>
           {profile?.nome ? profile.nome.charAt(0).toUpperCase() : "?"}
         </div>
       </div>
+
+      {/* Seletor de bairro */}
+      {showHoodPicker && (
+        <>
+          <div onClick={() => setShowHoodPicker(false)} style={{ position: "fixed", inset: 0, background: "#00000080", zIndex: 40 }} />
+          <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, background: "var(--surf)", borderRadius: "24px 24px 0 0", border: "0.5px solid var(--bd)", zIndex: 50, padding: "20px 20px 48px", maxHeight: "70vh", overflowY: "auto" }}>
+            <div style={{ width: 36, height: 3, background: "var(--bd)", borderRadius: 2, margin: "0 auto 20px" }} />
+            <div style={{ fontSize: 18, fontWeight: 900, color: "var(--txt)", marginBottom: 16 }}>Escolher bairro</div>
+
+            <div onClick={() => { setSelectedHood(null); setShowHoodPicker(false); }} style={{ padding: "14px 0", borderBottom: "0.5px solid var(--bd)", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span>🌆</span>
+                <span style={{ fontSize: 15, fontWeight: selectedHood === null ? 700 : 400, color: selectedHood === null ? "var(--p)" : "var(--txt)" }}>São Paulo, SP</span>
+              </div>
+              {selectedHood === null && <span style={{ color: "var(--p)", fontWeight: 900 }}>✓</span>}
+            </div>
+
+            {hoods.map((hood) => (
+              <div key={hood} onClick={() => { setSelectedHood(hood); setShowHoodPicker(false); }} style={{ padding: "14px 0", borderBottom: "0.5px solid var(--bd)", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span>📍</span>
+                  <span style={{ fontSize: 15, fontWeight: selectedHood === hood ? 700 : 400, color: selectedHood === hood ? "var(--p)" : "var(--txt)" }}>{hood}</span>
+                </div>
+                {selectedHood === hood && <span style={{ color: "var(--p)", fontWeight: 900 }}>✓</span>}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Stories dos lugares */}
       {loading ? (
@@ -180,7 +215,7 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts }: {
         </div>
       ) : (
         <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 16, marginBottom: 8 }}>
-          {venues.map((v) => (
+          {visibleVenues.map((v) => (
             <div key={v.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>
               <VenueAvatar v={v} size={58} />
               <span style={{ fontSize: 10, color: "var(--mt)", maxWidth: 58, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.name}</span>
@@ -346,7 +381,7 @@ function PostModal({ venues, profile, onClose, onPosted }: {
       <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 40px" }}>
         {step === "photo" && (
           <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, background: "var(--card)", border: "2px dashed var(--bd)", borderRadius: 24, minHeight: 340, cursor: "pointer" }}>
-            <input type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
+            <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} style={{ display: "none" }} />
             <div style={{ fontSize: 56 }}>📷</div>
             <div style={{ fontSize: 16, fontWeight: 700, color: "var(--txt)" }}>Tirar foto ou escolher da galeria</div>
             <div style={{ fontSize: 13, color: "var(--mt)" }}>Toque para selecionar</div>
