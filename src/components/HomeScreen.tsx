@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import BottomNav from "./BottomNav";
 import { supabase } from "@/lib/supabase";
 
@@ -164,44 +164,34 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts }: {
   return (
     <div style={{ padding: "16px 20px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <div onClick={() => setShowHoodPicker(true)} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
-          <span style={{ fontSize: 14, color: "var(--pk)" }}>📍</span>
-          <span style={{ fontSize: 15, fontWeight: 900, color: "var(--txt)" }}>{selectedHood ?? "São Paulo, SP"}</span>
-          <span style={{ fontSize: 11, color: "var(--mt)" }}>▾</span>
+        <div style={{ position: "relative" }}>
+          <div onClick={() => setShowHoodPicker((v) => !v)} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
+            <span style={{ fontSize: 14, color: "var(--pk)" }}>📍</span>
+            <span style={{ fontSize: 15, fontWeight: 900, color: "var(--txt)" }}>{selectedHood ?? "São Paulo, SP"}</span>
+            <span style={{ fontSize: 11, color: "var(--mt)", display: "inline-block", transition: "transform 0.2s", transform: showHoodPicker ? "rotate(180deg)" : "rotate(0deg)" }}>▾</span>
+          </div>
+          {showHoodPicker && (
+            <>
+              <div onClick={() => setShowHoodPicker(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+              <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 16, minWidth: 210, maxHeight: 260, overflowY: "auto", zIndex: 50, boxShadow: "0 8px 32px #00000070", animation: "slideDown 0.18s ease" }}>
+                <div onClick={() => { setSelectedHood(null); setShowHoodPicker(false); }} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: "0.5px solid var(--bd)", cursor: "pointer" }}>
+                  <span style={{ fontSize: 14, fontWeight: selectedHood === null ? 700 : 400, color: selectedHood === null ? "var(--p)" : "var(--txt)" }}>🌆 São Paulo, SP</span>
+                  {selectedHood === null && <span style={{ color: "var(--p)", fontSize: 12 }}>✓</span>}
+                </div>
+                {hoods.map((hood) => (
+                  <div key={hood} onClick={() => { setSelectedHood(hood); setShowHoodPicker(false); }} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: "0.5px solid var(--bd)", cursor: "pointer" }}>
+                    <span style={{ fontSize: 14, fontWeight: selectedHood === hood ? 700 : 400, color: selectedHood === hood ? "var(--p)" : "var(--txt)" }}>📍 {hood}</span>
+                    {selectedHood === hood && <span style={{ color: "var(--p)", fontSize: 12 }}>✓</span>}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
         <div onClick={onGoToProfile} style={{ width: 38, height: 38, borderRadius: "50%", background: "var(--p)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, color: "#fff", cursor: "pointer" }}>
           {profile?.nome ? profile.nome.charAt(0).toUpperCase() : "?"}
         </div>
       </div>
-
-      {/* Seletor de bairro */}
-      {showHoodPicker && (
-        <>
-          <div onClick={() => setShowHoodPicker(false)} style={{ position: "fixed", inset: 0, background: "#00000080", zIndex: 40 }} />
-          <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, background: "var(--surf)", borderRadius: "24px 24px 0 0", border: "0.5px solid var(--bd)", zIndex: 50, padding: "20px 20px 48px", maxHeight: "70vh", overflowY: "auto" }}>
-            <div style={{ width: 36, height: 3, background: "var(--bd)", borderRadius: 2, margin: "0 auto 20px" }} />
-            <div style={{ fontSize: 18, fontWeight: 900, color: "var(--txt)", marginBottom: 16 }}>Escolher bairro</div>
-
-            <div onClick={() => { setSelectedHood(null); setShowHoodPicker(false); }} style={{ padding: "14px 0", borderBottom: "0.5px solid var(--bd)", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span>🌆</span>
-                <span style={{ fontSize: 15, fontWeight: selectedHood === null ? 700 : 400, color: selectedHood === null ? "var(--p)" : "var(--txt)" }}>São Paulo, SP</span>
-              </div>
-              {selectedHood === null && <span style={{ color: "var(--p)", fontWeight: 900 }}>✓</span>}
-            </div>
-
-            {hoods.map((hood) => (
-              <div key={hood} onClick={() => { setSelectedHood(hood); setShowHoodPicker(false); }} style={{ padding: "14px 0", borderBottom: "0.5px solid var(--bd)", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span>📍</span>
-                  <span style={{ fontSize: 15, fontWeight: selectedHood === hood ? 700 : 400, color: selectedHood === hood ? "var(--p)" : "var(--txt)" }}>{hood}</span>
-                </div>
-                {selectedHood === hood && <span style={{ color: "var(--p)", fontWeight: 900 }}>✓</span>}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
 
       {/* Stories dos lugares */}
       {loading ? (
@@ -299,6 +289,69 @@ function RealPostCard({ post }: { post: RealPost }) {
   );
 }
 
+/* ── CÂMERA NATIVA ── */
+function CameraCapture({ onCapture, onFallback }: { onCapture: (file: File) => void; onFallback: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [ready, setReady] = useState(false);
+  const [err, setErr] = useState(false);
+
+  useEffect(() => {
+    navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false })
+      .then((s) => {
+        streamRef.current = s;
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+          videoRef.current.onloadedmetadata = () => setReady(true);
+        }
+      })
+      .catch(() => { setErr(true); });
+
+    return () => { streamRef.current?.getTracks().forEach((t) => t.stop()); };
+  }, []);
+
+  function snap() {
+    const video = videoRef.current;
+    if (!video) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d")?.drawImage(video, 0, 0);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    canvas.toBlob((blob) => {
+      if (blob) onCapture(new File([blob], `vybe-${Date.now()}.jpg`, { type: "image/jpeg" }));
+    }, "image/jpeg", 0.9);
+  }
+
+  if (err) return (
+    <div style={{ textAlign: "center", padding: 32 }}>
+      <div style={{ fontSize: 40, marginBottom: 12 }}>📵</div>
+      <div style={{ fontSize: 14, color: "var(--txt)", fontWeight: 700, marginBottom: 8 }}>Câmera não disponível</div>
+      <div style={{ fontSize: 12, color: "var(--mt)", marginBottom: 20 }}>Permita o acesso à câmera nas configurações do navegador</div>
+      <button className="btn-outline" onClick={onFallback} style={{ width: "auto", padding: "10px 24px" }}>Usar arquivo</button>
+    </div>
+  );
+
+  return (
+    <div style={{ position: "relative", borderRadius: 18, overflow: "hidden", background: "#000", minHeight: 360 }}>
+      <video ref={videoRef} autoPlay playsInline muted style={{ width: "100%", display: "block", maxHeight: "62vh", objectFit: "cover" }} />
+      {!ready && (
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ color: "#fff", fontSize: 14, opacity: 0.7 }}>Abrindo câmera...</div>
+        </div>
+      )}
+      {ready && (
+        <div style={{ position: "absolute", bottom: 24, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
+          <button onClick={snap} style={{ width: 72, height: 72, borderRadius: "50%", background: "#fff", border: "5px solid rgba(255,255,255,0.4)", cursor: "pointer", padding: 0 }}>
+            <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "#fff", border: "2px solid rgba(0,0,0,0.15)" }} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── POST MODAL ── */
 function PostModal({ venues, profile, onClose, onPosted }: {
   venues: Venue[];
@@ -380,13 +433,16 @@ function PostModal({ venues, profile, onClose, onPosted }: {
 
       <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 40px" }}>
         {step === "photo" && (
-          <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, background: "var(--card)", border: "2px dashed var(--bd)", borderRadius: 24, minHeight: 340, cursor: "pointer" }}>
-            <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} style={{ display: "none" }} />
-            <div style={{ fontSize: 56 }}>📷</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--txt)" }}>Tirar foto ou escolher da galeria</div>
-            <div style={{ fontSize: 13, color: "var(--mt)" }}>Toque para selecionar</div>
-          </label>
+          <CameraCapture
+            onCapture={(file) => {
+              setSelectedFile(file);
+              setPreviewUrl(URL.createObjectURL(file));
+              setStep("details");
+            }}
+            onFallback={() => document.getElementById("fallback-input")?.click()}
+          />
         )}
+        <input id="fallback-input" type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
 
         {step === "details" && (
           <>
