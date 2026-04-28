@@ -237,6 +237,7 @@ export default function HomeScreen({ onSignOut }: { onSignOut: () => void }) {
   const [selectedVenueProfile, setSelectedVenueProfile] = useState<Venue | null>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [followedVenueIds, setFollowedVenueIds] = useState<number[]>([]);
+  const [followsLoaded, setFollowsLoaded] = useState(false);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
 
@@ -260,7 +261,10 @@ export default function HomeScreen({ onSignOut }: { onSignOut: () => void }) {
       supabase.from("profiles").select("*").eq("id", session.user.id).single()
         .then(({ data: p }) => { if (p) setProfile(p as Profile); });
       supabase.from("venue_follows").select("venue_id").eq("user_id", session.user.id)
-        .then(({ data: follows }) => { if (follows) setFollowedVenueIds(follows.map((f: { venue_id: number }) => f.venue_id)); });
+        .then(({ data: follows }) => {
+          setFollowedVenueIds(follows ? follows.map((f: { venue_id: number }) => f.venue_id) : []);
+          setFollowsLoaded(true);
+        });
     });
 
     navigator.geolocation?.getCurrentPosition(
@@ -291,7 +295,7 @@ export default function HomeScreen({ onSignOut }: { onSignOut: () => void }) {
       onTouchEnd={handleTouchEnd}
     >
       <div style={{ flex: 1, overflowY: "auto", paddingBottom: 80 }}>
-        {tab === "home" && <FeedTab venues={venues} loading={loadingVenues} profile={profile} onGoToProfile={() => setTab("perfil")} posts={posts} onVenuePress={setSelectedVenueProfile} followedVenueIds={followedVenueIds} />}
+        {tab === "home" && <FeedTab venues={venues} loading={loadingVenues} profile={profile} onGoToProfile={() => setTab("perfil")} posts={posts} onVenuePress={setSelectedVenueProfile} followedVenueIds={followedVenueIds} followsLoaded={followsLoaded} />}
         {tab === "search" && <SearchTab venues={venues} loading={loadingVenues} userLocation={userLocation} onVenuePress={setSelectedVenueProfile} />}
         {tab === "chat" && <ChatTab />}
         {tab === "loja" && <LojaTab />}
@@ -311,19 +315,18 @@ export default function HomeScreen({ onSignOut }: { onSignOut: () => void }) {
 }
 
 /* ── FEED ── */
-function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress, followedVenueIds }: {
+function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress, followedVenueIds, followsLoaded }: {
   venues: Venue[]; loading: boolean; profile: Profile | null;
   onGoToProfile: () => void; posts: RealPost[]; onVenuePress: (v: Venue) => void;
-  followedVenueIds: number[];
+  followedVenueIds: number[]; followsLoaded: boolean;
 }) {
   const [selectedHood, setSelectedHood] = useState<string | null>(null);
   const [showHoodPicker, setShowHoodPicker] = useState(false);
   const hoods = [...new Set(venues.map((v) => v.hood))].sort();
   const hoodFiltered = selectedHood ? venues.filter((v) => v.hood === selectedHood) : venues;
-  const storyVenues = followedVenueIds.length > 0
+  const visibleVenues = followsLoaded && followedVenueIds.length > 0
     ? hoodFiltered.filter((v) => followedVenueIds.includes(v.id))
-    : hoodFiltered;
-  const visibleVenues = storyVenues;
+    : [];
 
   return (
     <div style={{ padding: "16px 20px" }}>
@@ -366,7 +369,7 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress,
       </div>
 
       {/* Stories */}
-      {loading ? (
+      {loading || !followsLoaded ? (
         <div style={{ display: "flex", gap: 14, paddingBottom: 16, marginBottom: 8 }}>
           {[1, 2, 3, 4].map((i) => (
             <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>
@@ -375,7 +378,7 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress,
             </div>
           ))}
         </div>
-      ) : (
+      ) : visibleVenues.length > 0 ? (
         <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 16, marginBottom: 8 }}>
           {visibleVenues.map((v) => (
             <div key={v.id} onClick={() => onVenuePress(v)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0, cursor: "pointer" }}>
@@ -383,6 +386,16 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress,
               <span style={{ fontSize: 10, color: "var(--mt)", maxWidth: 58, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.name}</span>
             </div>
           ))}
+        </div>
+      ) : (
+        <div style={{ marginBottom: 16, padding: "12px 0", display: "flex", alignItems: "center", gap: 10, color: "var(--mt)" }}>
+          <div style={{ width: 58, height: 58, borderRadius: "50%", border: "1.5px dashed var(--bd)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--txt)" }}>Siga rolês para ver stories</div>
+            <div style={{ fontSize: 11, marginTop: 2 }}>Abra um bar e toque em + Seguir</div>
+          </div>
         </div>
       )}
 
@@ -749,6 +762,13 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
           : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 80, fontWeight: 900, color: v.color, opacity: 0.2 }}>{v.initial}</div>
         }
         <button onClick={onClose} style={{ position: "absolute", top: 52, left: 16, width: 38, height: 38, borderRadius: "50%", background: "#00000070", border: "none", color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>←</button>
+        {(v.tags || []).length > 0 && (
+          <div style={{ position: "absolute", bottom: 12, right: 12, display: "flex", gap: 5, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            {(v.tags || []).map((t) => (
+              <span key={t} style={{ background: "#00000075", color: "#fff", fontSize: 10, padding: "4px 10px", borderRadius: 20, fontWeight: 700, backdropFilter: "blur(6px)" }}>{t}</span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Linha: avatar + stats (estilo Instagram) */}
@@ -771,14 +791,28 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
       {/* Nome, bairro, distância, tags */}
       <div style={{ padding: "14px 20px 0" }}>
         <div style={{ fontSize: 17, fontWeight: 900, color: "var(--txt)", marginBottom: 2 }}>{v.name} <span style={{ fontWeight: 400, color: "var(--mt)" }}>— {v.hood}</span></div>
-        {dist && <div style={{ fontSize: 12, color: "var(--cy)", fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}><PinIcon size={12} color="var(--cy)" /> {dist} de você</div>}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-          {(v.tags || []).map((t) => <span key={t} style={{ background: "var(--pd)", color: "var(--p)", fontSize: 11, padding: "3px 10px", borderRadius: 20, border: "0.5px solid #9D4EDD44", fontWeight: 700 }}>{t}</span>)}
-        </div>
+        {dist && <div style={{ fontSize: 12, color: "var(--cy)", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}><PinIcon size={12} color="var(--cy)" /> {dist} de você</div>}
       </div>
 
+      {/* Ir pra lá */}
+      {v.address && (
+        <div style={{ padding: "14px 20px 0" }}>
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.address)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", padding: "13px 0", borderRadius: 14, background: "linear-gradient(135deg, #9D4EDD, #7B2FBE)", color: "#fff", fontWeight: 700, fontSize: 15, textDecoration: "none" }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+            </svg>
+            Ir pra lá
+          </a>
+        </div>
+      )}
+
       {/* Botões */}
-      <div style={{ display: "flex", gap: 8, padding: "14px 20px 8px" }}>
+      <div style={{ display: "flex", gap: 8, padding: "10px 20px 8px" }}>
         <button onClick={toggleFollow} style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "0.5px solid", borderColor: isFollowing ? "var(--bd)" : "var(--p)", background: isFollowing ? "transparent" : "var(--p)", color: isFollowing ? "var(--txt)" : "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
           {isFollowing ? "✓ Seguindo" : "+ Seguir"}
         </button>
@@ -924,21 +958,28 @@ function VenueCard({ venue: v, onClick, userLocation }: { venue: Venue; onClick:
 function ChatTab() {
   return (
     <div style={{ padding: "16px 20px" }}>
-      <div style={{ fontSize: 22, fontWeight: 900, color: "var(--txt)", marginBottom: 4 }}>Chat</div>
-      <div style={{ fontSize: 13, color: "var(--mt)", marginBottom: 20 }}>Mensagens somem em 8h</div>
-      {CHATS.map((c) => (
-        <div key={c.id} style={{ display: "flex", gap: 12, alignItems: "center", padding: "12px 0", borderBottom: "0.5px solid var(--bd)", cursor: "pointer" }}>
-          <div style={{ width: 46, height: 46, borderRadius: "50%", background: c.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 900, color: "#fff", flexShrink: 0 }}>{c.initial}</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontWeight: 700, fontSize: 14, color: "var(--txt)" }}>{c.name}</span>
-              <span style={{ fontSize: 10, color: "var(--mt)" }}>{c.time}</span>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div style={{ fontSize: 22, fontWeight: 900, color: "var(--txt)" }}>Mensagens</div>
+        <div style={{ fontSize: 11, color: "var(--mt)", background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 20, padding: "4px 10px" }}>Somem em 8h</div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {CHATS.map((c) => (
+          <div key={c.id} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 20, padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: c.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 900, color: "#fff", flexShrink: 0 }}>{c.initial}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 900, fontSize: 15, color: "var(--txt)", marginBottom: 4 }}>{c.name}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {c.unread > 0 && (
+                  <span style={{ fontSize: 12, color: "var(--p)", fontWeight: 700 }}>{c.unread}+ nova{c.unread > 1 ? "s" : ""} mensagem{c.unread > 1 ? "s" : ""}</span>
+                )}
+                {c.unread > 0 && <span style={{ color: "var(--mt)", fontSize: 12 }}>·</span>}
+                <span style={{ fontSize: 12, color: "var(--mt)" }}>{c.time}</span>
+              </div>
             </div>
-            <div style={{ fontSize: 13, color: "var(--mt)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.last}</div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
           </div>
-          {c.unread > 0 && <div style={{ width: 20, height: 20, borderRadius: "50%", background: "var(--p)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 900, color: "#fff" }}>{c.unread}</div>}
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
@@ -1062,15 +1103,14 @@ function PerfilTab({ profile, setProfile, onSignOut }: { profile: Profile | null
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
         {[
-          { l: "Rolês visitados", v: "0", icon: <PinIcon size={22} color="var(--p)" /> },
-          { l: "Posts ativos", v: "0", icon: <CameraIcon size={22} color="var(--p)" /> },
-          { l: "Seguidores", v: "0", icon: <UsersIcon size={22} color="var(--p)" /> },
-          { l: "Seguindo", v: "0", icon: <HeartIcon size={22} color="var(--p)" /> },
+          { l: "Rolês visitados", v: "0" },
+          { l: "Posts ativos", v: "0" },
+          { l: "Seguidores", v: "0" },
+          { l: "Seguindo", v: "0" },
         ].map((s) => (
           <div key={s.l} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 14, padding: 14, textAlign: "center" }}>
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 4 }}>{s.icon}</div>
-            <div style={{ fontSize: 24, fontWeight: 900, color: "var(--txt)" }}>{s.v}</div>
-            <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>{s.l}</div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: "var(--txt)" }}>{s.v}</div>
+            <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 4 }}>{s.l}</div>
           </div>
         ))}
       </div>
@@ -1110,6 +1150,8 @@ function PerfilTab({ profile, setProfile, onSignOut }: { profile: Profile | null
 
 /* ── MOCK (chat) ── */
 const CHATS = [
-  { id: 1, name: "Mariana Costa", initial: "M", color: "#9D4EDD", last: "Te vi no Cine Joia hahaha", time: "22:14", unread: 2 },
-  { id: 2, name: "Rafael Lima", initial: "R", color: "#FF006E", last: "Qual bar você tá?", time: "21:50", unread: 0 },
+  { id: 1, name: "Mariana Costa", initial: "M", color: "#9D4EDD", time: "2h", unread: 4 },
+  { id: 2, name: "Audio Club", initial: "AC", color: "#1A1A35", time: "20h", unread: 2 },
+  { id: 3, name: "Rafael Lima", initial: "R", color: "#FF006E", time: "5h", unread: 0 },
+  { id: 4, name: "Cine Joia", initial: "CJ", color: "#7B2FBE", time: "8h", unread: 0 },
 ];
