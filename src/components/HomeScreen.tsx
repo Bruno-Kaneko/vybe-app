@@ -515,6 +515,7 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
   const [venuePosts, setVenuePosts] = useState<RealPost[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [agendaMsg, setAgendaMsg] = useState(false);
+  const [activeTab, setActiveTab] = useState<"grid" | "info">("grid");
 
   const dist = userLocation && v.lat && v.lng ? formatDist(haversine(userLocation.lat, userLocation.lng, v.lat, v.lng)) : null;
 
@@ -547,7 +548,7 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
   return (
     <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 70, overflowY: "auto" }}>
       {/* Hero cover */}
-      <div style={{ position: "relative", width: "100%", height: 200, background: v.color + "20", overflow: "hidden" }}>
+      <div style={{ position: "relative", width: "100%", height: 220, background: v.color + "20", overflow: "hidden" }}>
         {v.image_url
           ? <img src={v.image_url} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 80, fontWeight: 900, color: v.color, opacity: 0.2 }}>{v.initial}</div>
@@ -556,39 +557,40 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
       </div>
 
       {/* Avatar sobrepondo o cover */}
-      <div style={{ display: "flex", justifyContent: "center", marginTop: -46 }}>
-        <div style={{ width: 90, height: 90, borderRadius: "50%", border: "3px solid var(--bg)", overflow: "hidden", background: v.color + "30", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 900, color: v.color }}>
+      <div style={{ display: "flex", justifyContent: "center", marginTop: -50 }}>
+        <div style={{ width: 96, height: 96, borderRadius: "50%", border: "3px solid var(--bg)", overflow: "hidden", background: v.color + "30", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34, fontWeight: 900, color: v.color }}>
           {v.image_url ? <img src={v.image_url} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : v.initial}
         </div>
       </div>
 
       {/* Info */}
-      <div style={{ textAlign: "center", padding: "12px 20px 0" }}>
-        <div style={{ fontSize: 22, fontWeight: 900, color: "var(--txt)", marginBottom: 2 }}>{v.name}</div>
-        <div style={{ fontSize: 13, color: "var(--mt)", marginBottom: dist ? 4 : 8 }}>{v.hood}</div>
-        {dist && <div style={{ fontSize: 12, color: "var(--cy)", marginBottom: 8, fontWeight: 700 }}>📍 {dist} de você</div>}
-        <div style={{ display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
-          {(v.tags || []).map((t) => <span key={t} style={{ background: "var(--pd)", color: "var(--p)", fontSize: 11, padding: "3px 10px", borderRadius: 20, border: "0.5px solid #9D4EDD44", fontWeight: 700 }}>{t}</span>)}
+      <div style={{ textAlign: "center", padding: "16px 24px 0" }}>
+        <div style={{ fontSize: 22, fontWeight: 900, color: "var(--txt)", marginBottom: 4 }}>{v.name}</div>
+        <div style={{ fontSize: 13, color: "var(--mt)", marginBottom: dist ? 6 : 12 }}>{v.hood}</div>
+        {dist && <div style={{ fontSize: 12, color: "var(--cy)", marginBottom: 12, fontWeight: 700 }}>📍 {dist} de você</div>}
+        <div style={{ display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap", marginBottom: 20 }}>
+          {(v.tags || []).map((t) => <span key={t} style={{ background: "var(--pd)", color: "var(--p)", fontSize: 11, padding: "4px 12px", borderRadius: 20, border: "0.5px solid #9D4EDD44", fontWeight: 700 }}>{t}</span>)}
         </div>
 
         {/* Stats */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 32, marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "center", gap: 40, marginBottom: 20 }}>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 18, fontWeight: 900, color: "var(--txt)" }}>{venuePosts.length}</div>
-            <div style={{ fontSize: 11, color: "var(--mt)" }}>posts</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: "var(--txt)" }}>{venuePosts.length}</div>
+            <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>posts</div>
           </div>
+          <div style={{ width: 1, background: "var(--bd)" }} />
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 18, fontWeight: 900, color: "var(--txt)" }}>{followers}</div>
-            <div style={{ fontSize: 11, color: "var(--mt)" }}>seguidores</div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: "var(--txt)" }}>{followers}</div>
+            <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>seguidores</div>
           </div>
         </div>
 
         {/* Botões */}
-        <div style={{ display: "flex", gap: 10, marginBottom: 20, paddingBottom: 4 }}>
-          <button onClick={toggleFollow} style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "0.5px solid", borderColor: isFollowing ? "var(--bd)" : "var(--p)", background: isFollowing ? "transparent" : "var(--p)", color: isFollowing ? "var(--txt)" : "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+        <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
+          <button onClick={toggleFollow} style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "0.5px solid", borderColor: isFollowing ? "var(--bd)" : "var(--p)", background: isFollowing ? "transparent" : "var(--p)", color: isFollowing ? "var(--txt)" : "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
             {isFollowing ? "✓ Seguindo" : "+ Seguir"}
           </button>
-          <button onClick={() => setAgendaMsg(true)} style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "0.5px solid var(--bd)", background: "transparent", color: "var(--txt)", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+          <button onClick={() => setAgendaMsg(true)} style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "0.5px solid var(--bd)", background: "transparent", color: "var(--txt)", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
             📅 Agenda
           </button>
         </div>
@@ -606,60 +608,83 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
         </>
       )}
 
-      {/* Divisória */}
-      <div style={{ height: 1, background: "var(--bd)", margin: "0 20px 16px" }} />
-
-      {/* Lotação */}
-      <div style={{ margin: "0 20px 16px", background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 16, padding: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-          <div style={{ fontSize: 11, fontWeight: 900, color: "var(--mt)", letterSpacing: 0.5 }}>LOTAÇÃO AGORA</div>
-          <span style={{ fontSize: 12, color: occColor, fontWeight: 900 }}>{occLabel} · {v.occ}%</span>
-        </div>
-        <div style={{ background: "#1A1A35", borderRadius: 6, height: 7 }}>
-          <div style={{ width: `${v.occ}%`, background: occColor, borderRadius: 6, height: 7 }} />
-        </div>
+      {/* Tabs — Instagram style */}
+      <div style={{ display: "flex", borderTop: "0.5px solid var(--bd)", borderBottom: "0.5px solid var(--bd)" }}>
+        <button onClick={() => setActiveTab("grid")} style={{ flex: 1, padding: "14px 0", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: activeTab === "grid" ? "2px solid var(--txt)" : "2px solid transparent" }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={activeTab === "grid" ? "var(--txt)" : "var(--mt)"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
+          </svg>
+        </button>
+        <button onClick={() => setActiveTab("info")} style={{ flex: 1, padding: "14px 0", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: activeTab === "info" ? "2px solid var(--txt)" : "2px solid transparent" }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={activeTab === "info" ? "var(--txt)" : "var(--mt)"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="8" strokeWidth="2.5" /><line x1="12" y1="12" x2="12" y2="16" />
+          </svg>
+        </button>
       </div>
 
-      {/* Grid de info */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, margin: "0 20px 16px" }}>
-        {[
-          { e: "💰", label: "Preço", value: v.price },
-          { e: "🕒", label: "Fecha às", value: v.close_time || "—" },
-          { e: "🚇", label: "Transporte", value: v.transit || "—" },
-          { e: "🅿️", label: "Estacionamento", value: v.parking ? "Disponível" : "Sem vaga" },
-          { e: "🎫", label: "Entrada", value: v.entry || "Gratuita" },
-          { e: "🪑", label: "Assento", value: v.has_seat ? "Tem assento" : "Em pé" },
-        ].map((item) => (
-          <div key={item.label} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 14, padding: "12px 14px" }}>
-            <div style={{ fontSize: 20, marginBottom: 6 }}>{item.e}</div>
-            <div style={{ fontSize: 11, color: "var(--mt)", marginBottom: 2 }}>{item.label}</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--txt)" }}>{item.value}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Endereço */}
-      {v.address && (
-        <div style={{ margin: "0 20px 16px", background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 14, padding: "14px 16px", display: "flex", gap: 12 }}>
-          <span style={{ fontSize: 18 }}>📍</span>
-          <div>
-            <div style={{ fontSize: 11, color: "var(--mt)", marginBottom: 2 }}>ENDEREÇO</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--txt)", lineHeight: 1.5 }}>{v.address}</div>
-          </div>
+      {/* Tab: Grid de fotos */}
+      {activeTab === "grid" && (
+        <div style={{ paddingBottom: 48 }}>
+          {venuePosts.length > 0 ? (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 2 }}>
+              {venuePosts.map((p) => (
+                <div key={p.id} style={{ aspectRatio: "1", overflow: "hidden" }}>
+                  <img src={p.image_url} alt="post" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ textAlign: "center", padding: "60px 24px", color: "var(--mt)" }}>
+              <div style={{ fontSize: 48, marginBottom: 14 }}>📸</div>
+              <div style={{ fontWeight: 900, fontSize: 15, color: "var(--txt)", marginBottom: 8 }}>Nenhuma foto ainda</div>
+              <div style={{ fontSize: 13 }}>Seja o primeiro a postar aqui!</div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Posts grid */}
-      {venuePosts.length > 0 && (
-        <div style={{ margin: "0 20px 48px" }}>
-          <div style={{ fontSize: 11, fontWeight: 900, color: "var(--mt)", letterSpacing: 0.5, marginBottom: 10 }}>POSTS ATIVOS</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 3 }}>
-            {venuePosts.map((p) => (
-              <div key={p.id} style={{ aspectRatio: "1", overflow: "hidden", borderRadius: 6 }}>
-                <img src={p.image_url} alt="post" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      {/* Tab: Informações */}
+      {activeTab === "info" && (
+        <div style={{ padding: "20px 20px 48px", display: "flex", flexDirection: "column", gap: 12 }}>
+          {/* Lotação */}
+          <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 16, padding: "16px 18px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 900, color: "var(--mt)", letterSpacing: 0.5 }}>LOTAÇÃO AGORA</div>
+              <span style={{ fontSize: 12, color: occColor, fontWeight: 900 }}>{occLabel} · {v.occ}%</span>
+            </div>
+            <div style={{ background: "#1A1A35", borderRadius: 6, height: 8 }}>
+              <div style={{ width: `${v.occ}%`, background: occColor, borderRadius: 6, height: 8 }} />
+            </div>
+          </div>
+
+          {/* Grid de info */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {[
+              { e: "💰", label: "Preço", value: v.price },
+              { e: "🕒", label: "Fecha às", value: v.close_time || "—" },
+              { e: "🚇", label: "Transporte", value: v.transit || "—" },
+              { e: "🅿️", label: "Estacionamento", value: v.parking ? "Disponível" : "Sem vaga" },
+              { e: "🎫", label: "Entrada", value: v.entry || "Gratuita" },
+              { e: "🪑", label: "Assento", value: v.has_seat ? "Tem assento" : "Em pé" },
+            ].map((item) => (
+              <div key={item.label} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 14, padding: "14px 16px" }}>
+                <div style={{ fontSize: 22, marginBottom: 8 }}>{item.e}</div>
+                <div style={{ fontSize: 11, color: "var(--mt)", marginBottom: 3 }}>{item.label}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--txt)" }}>{item.value}</div>
               </div>
             ))}
           </div>
+
+          {/* Endereço */}
+          {v.address && (
+            <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 14, padding: "16px 18px", display: "flex", gap: 14 }}>
+              <span style={{ fontSize: 20 }}>📍</span>
+              <div>
+                <div style={{ fontSize: 11, color: "var(--mt)", marginBottom: 4, letterSpacing: 0.5 }}>ENDEREÇO</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--txt)", lineHeight: 1.6 }}>{v.address}</div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
