@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import BottomNav from "./BottomNav";
 import { supabase } from "@/lib/supabase";
 
@@ -98,6 +98,109 @@ function toggle<T>(arr: T[], val: T): T[] {
   return arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
 }
 
+/* ── ÍCONES SVG ── */
+function PinIcon({ size = 14, color = "var(--pk)" }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+function CalendarIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+
+function CameraIcon({ size = 22, color = "white" }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+      <circle cx="12" cy="13" r="4" />
+    </svg>
+  );
+}
+function HeartIcon({ filled = false, size = 20, color = "currentColor" }: { filled?: boolean; size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : "none"} stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+    </svg>
+  );
+}
+function ShareIcon({ size = 20, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+    </svg>
+  );
+}
+function CommentIcon({ size = 20, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+function ClockIcon({ size = 16, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+function StarIcon({ size = 28 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="var(--p)" stroke="var(--p)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
+function LockIcon({ size = 16, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
+function EditIcon({ size = 16, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  );
+}
+function BellIcon({ size = 16, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  );
+}
+function LogoutIcon({ size = 16, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
+}
+function UsersIcon({ size = 22, color = "currentColor" }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
 /* ── AVATAR DO VENUE ── */
 function VenueAvatar({ v, size = 46 }: { v: Venue; size?: number }) {
   return (
@@ -130,9 +233,12 @@ export default function HomeScreen({ onSignOut }: { onSignOut: () => void }) {
   const [loadingVenues, setLoadingVenues] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [posts, setPosts] = useState<RealPost[]>([]);
-  const [showPostModal, setShowPostModal] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
   const [selectedVenueProfile, setSelectedVenueProfile] = useState<Venue | null>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [followedVenueIds, setFollowedVenueIds] = useState<number[]>([]);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
 
   async function fetchPosts() {
     const { data } = await supabase
@@ -153,18 +259,39 @@ export default function HomeScreen({ onSignOut }: { onSignOut: () => void }) {
       if (!session?.user) return;
       supabase.from("profiles").select("*").eq("id", session.user.id).single()
         .then(({ data: p }) => { if (p) setProfile(p as Profile); });
+      supabase.from("venue_follows").select("venue_id").eq("user_id", session.user.id)
+        .then(({ data: follows }) => { if (follows) setFollowedVenueIds(follows.map((f: { venue_id: number }) => f.venue_id)); });
     });
 
     navigator.geolocation?.getCurrentPosition(
       (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => { /* sem GPS — tudo bem */ }
+      () => {}
     );
   }, []);
 
+  function handleTouchStart(e: React.TouchEvent) {
+    if (tab !== "home") return;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (tab !== "home" || touchStartX.current === null || touchStartY.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
+    if (dx > 70 && dy < 80) setShowCamera(true);
+    touchStartX.current = null;
+    touchStartY.current = null;
+  }
+
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column" }}>
+    <div
+      style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column" }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <div style={{ flex: 1, overflowY: "auto", paddingBottom: 80 }}>
-        {tab === "home" && <FeedTab venues={venues} loading={loadingVenues} profile={profile} onGoToProfile={() => setTab("perfil")} posts={posts} onVenuePress={setSelectedVenueProfile} />}
+        {tab === "home" && <FeedTab venues={venues} loading={loadingVenues} profile={profile} onGoToProfile={() => setTab("perfil")} posts={posts} onVenuePress={setSelectedVenueProfile} followedVenueIds={followedVenueIds} />}
         {tab === "search" && <SearchTab venues={venues} loading={loadingVenues} userLocation={userLocation} onVenuePress={setSelectedVenueProfile} />}
         {tab === "chat" && <ChatTab />}
         {tab === "loja" && <LojaTab />}
@@ -172,17 +299,8 @@ export default function HomeScreen({ onSignOut }: { onSignOut: () => void }) {
       </div>
       <BottomNav active={tab} onChange={(t) => setTab(t as Tab)} />
 
-      {tab === "home" && (
-        <button onClick={() => setShowPostModal(true)} style={{ position: "fixed", bottom: 88, left: "50%", transform: "translateX(-50%)", width: 56, height: 56, borderRadius: "50%", background: "linear-gradient(135deg, #9D4EDD, #FF006E)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 24px #9D4EDD70", zIndex: 30 }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-            <circle cx="12" cy="13" r="4" />
-          </svg>
-        </button>
-      )}
-
-      {showPostModal && (
-        <PostModal venues={venues} profile={profile} onClose={() => setShowPostModal(false)} onPosted={() => { setShowPostModal(false); fetchPosts(); }} />
+      {showCamera && (
+        <CameraModal venues={venues} profile={profile} onClose={() => setShowCamera(false)} onPosted={() => { setShowCamera(false); fetchPosts(); }} />
       )}
 
       {selectedVenueProfile && (
@@ -193,21 +311,26 @@ export default function HomeScreen({ onSignOut }: { onSignOut: () => void }) {
 }
 
 /* ── FEED ── */
-function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress }: {
+function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress, followedVenueIds }: {
   venues: Venue[]; loading: boolean; profile: Profile | null;
   onGoToProfile: () => void; posts: RealPost[]; onVenuePress: (v: Venue) => void;
+  followedVenueIds: number[];
 }) {
   const [selectedHood, setSelectedHood] = useState<string | null>(null);
   const [showHoodPicker, setShowHoodPicker] = useState(false);
   const hoods = [...new Set(venues.map((v) => v.hood))].sort();
-  const visibleVenues = selectedHood ? venues.filter((v) => v.hood === selectedHood) : venues;
+  const hoodFiltered = selectedHood ? venues.filter((v) => v.hood === selectedHood) : venues;
+  const storyVenues = followedVenueIds.length > 0
+    ? hoodFiltered.filter((v) => followedVenueIds.includes(v.id))
+    : hoodFiltered;
+  const visibleVenues = storyVenues;
 
   return (
     <div style={{ padding: "16px 20px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div style={{ position: "relative" }}>
           <div onClick={() => setShowHoodPicker((s) => !s)} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
-            <span style={{ fontSize: 14, color: "var(--pk)" }}>📍</span>
+            <PinIcon size={14} color="var(--pk)" />
             <span style={{ fontSize: 15, fontWeight: 900, color: "var(--txt)" }}>{selectedHood ?? "São Paulo, SP"}</span>
             <span style={{ fontSize: 11, color: "var(--mt)", display: "inline-block", transition: "transform 0.2s", transform: showHoodPicker ? "rotate(180deg)" : "rotate(0deg)" }}>▾</span>
           </div>
@@ -216,12 +339,12 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress 
               <div onClick={() => setShowHoodPicker(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
               <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 16, minWidth: 210, maxHeight: 260, overflowY: "auto", zIndex: 50, boxShadow: "0 8px 32px #00000070", animation: "slideDown 0.18s ease" }}>
                 <div onClick={() => { setSelectedHood(null); setShowHoodPicker(false); }} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: "0.5px solid var(--bd)", cursor: "pointer" }}>
-                  <span style={{ fontSize: 14, fontWeight: selectedHood === null ? 700 : 400, color: selectedHood === null ? "var(--p)" : "var(--txt)" }}>🌆 São Paulo, SP</span>
+                  <span style={{ fontSize: 14, fontWeight: selectedHood === null ? 700 : 400, color: selectedHood === null ? "var(--p)" : "var(--txt)" }}>São Paulo, SP</span>
                   {selectedHood === null && <span style={{ color: "var(--p)", fontSize: 12 }}>✓</span>}
                 </div>
                 {hoods.map((hood) => (
                   <div key={hood} onClick={() => { setSelectedHood(hood); setShowHoodPicker(false); }} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: "0.5px solid var(--bd)", cursor: "pointer" }}>
-                    <span style={{ fontSize: 14, fontWeight: selectedHood === hood ? 700 : 400, color: selectedHood === hood ? "var(--p)" : "var(--txt)" }}>📍 {hood}</span>
+                    <span style={{ fontSize: 14, fontWeight: selectedHood === hood ? 700 : 400, color: selectedHood === hood ? "var(--p)" : "var(--txt)" }}>{hood}</span>
                     {selectedHood === hood && <span style={{ color: "var(--p)", fontSize: 12 }}>✓</span>}
                   </div>
                 ))}
@@ -229,8 +352,16 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress 
             </>
           )}
         </div>
-        <div onClick={onGoToProfile}>
-          <UserAvatar profile={profile} size={38} />
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <button style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", color: "var(--mt)" }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+          </button>
+          <div onClick={onGoToProfile}>
+            <UserAvatar profile={profile} size={38} />
+          </div>
         </div>
       </div>
 
@@ -261,7 +392,7 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress 
           ? posts.map((p) => <RealPostCard key={p.id} post={p} />)
           : (
             <div style={{ textAlign: "center", paddingTop: 40, color: "var(--mt)" }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>📸</div>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}><CameraIcon size={48} color="var(--mt)" /></div>
               <div style={{ fontWeight: 900, fontSize: 16, color: "var(--txt)", marginBottom: 8 }}>Nenhum post ainda</div>
               <div style={{ fontSize: 13 }}>Seja o primeiro a postar de um rolê!</div>
             </div>
@@ -286,7 +417,7 @@ function RealPostCard({ post }: { post: RealPost }) {
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--txt)" }}>{nome}</span>
             <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 10, background: badge.color + "20", color: badge.color, fontWeight: 700 }}>{badge.dot} {badge.label}</span>
           </div>
-          <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}><span style={{ color: "var(--pk)" }}>📍</span> {venueName}</div>
+          <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}><PinIcon size={11} color="var(--pk)" /> {venueName}</div>
         </div>
         <div style={{ fontSize: 10, color: "var(--mt)", background: "#1A1A35", padding: "4px 8px", borderRadius: 8 }}>{timeLeft(post.expires_at)}</div>
       </div>
@@ -295,10 +426,10 @@ function RealPostCard({ post }: { post: RealPost }) {
       </div>
       <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 16 }}>
         <button onClick={() => setLiked(!liked)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: liked ? "var(--pk)" : "var(--mt)", fontSize: 13 }}>
-          <span style={{ fontSize: 20 }}>{liked ? "♥" : "♡"}</span> 0
+          <HeartIcon filled={liked} size={20} color={liked ? "var(--pk)" : "var(--mt)"} /> 0
         </button>
         <button style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "var(--mt)", fontSize: 13 }}>
-          <span style={{ fontSize: 18 }}>💬</span> 0
+          <CommentIcon size={19} color="var(--mt)" /> 0
         </button>
         <div style={{ marginLeft: "auto", fontSize: 11, color: "var(--mt)" }}>{timeSince(post.created_at)}</div>
       </div>
@@ -306,8 +437,9 @@ function RealPostCard({ post }: { post: RealPost }) {
   );
 }
 
-/* ── POST MODAL ── */
-function PostModal({ venues, profile, onClose, onPosted }: { venues: Venue[]; profile: Profile | null; onClose: () => void; onPosted: () => void }) {
+/* ── CAMERA MODAL (swipe da home) ── */
+function CameraModal({ venues, profile, onClose, onPosted }: { venues: Venue[]; profile: Profile | null; onClose: () => void; onPosted: () => void }) {
+  const [mode, setMode] = useState<"story" | "post">("story");
   const [step, setStep] = useState<"photo" | "details">("photo");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -329,8 +461,8 @@ function PostModal({ venues, profile, onClose, onPosted }: { venues: Venue[]; pr
     venueQuery === "" || v.name.toLowerCase().includes(venueQuery.toLowerCase()) || v.hood.toLowerCase().includes(venueQuery.toLowerCase())
   );
 
-  async function handlePost() {
-    if (!selectedFile || !selectedVenue || !profile) return;
+  async function handlePublish() {
+    if (!selectedFile || !profile) return;
     setLoading(true); setError("");
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -340,8 +472,15 @@ function PostModal({ venues, profile, onClose, onPosted }: { venues: Venue[]; pr
       const { error: uploadError } = await supabase.storage.from("posts").upload(fileName, selectedFile);
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from("posts").getPublicUrl(fileName);
-      const expiresAt = new Date(Date.now() + duration * 3600000).toISOString();
-      const { error: insertError } = await supabase.from("posts").insert({ user_id: session.user.id, venue_id: selectedVenue.id, image_url: publicUrl, duration, expires_at: expiresAt });
+      const dur = mode === "story" ? 2 : duration;
+      const expiresAt = new Date(Date.now() + dur * 3600000).toISOString();
+      const { error: insertError } = await supabase.from("posts").insert({
+        user_id: session.user.id,
+        venue_id: selectedVenue?.id ?? null,
+        image_url: publicUrl,
+        duration: dur,
+        expires_at: expiresAt,
+      });
       if (insertError) throw insertError;
       onPosted();
     } catch { setError("Erro ao publicar. Tente novamente."); }
@@ -349,31 +488,68 @@ function PostModal({ venues, profile, onClose, onPosted }: { venues: Venue[]; pr
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 70, display: "flex", flexDirection: "column" }}>
+    <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 70, display: "flex", flexDirection: "column", animation: "slideFromLeft 0.22s ease" }}>
+      <style>{`@keyframes slideFromLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }`}</style>
+
+      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", padding: "54px 20px 16px", gap: 12, flexShrink: 0 }}>
-        <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--mt)", fontSize: 22, cursor: "pointer" }}>✕</button>
-        <div style={{ fontSize: 18, fontWeight: 900, color: "var(--txt)" }}>{step === "photo" ? "Tirar foto" : "Detalhes do post"}</div>
-        {step === "details" && <button onClick={() => { setStep("photo"); setSelectedFile(null); setPreviewUrl(null); }} style={{ marginLeft: "auto", background: "none", border: "none", color: "var(--p)", fontSize: 13, cursor: "pointer" }}>Trocar foto</button>}
+        <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--mt)", cursor: "pointer", display: "flex", alignItems: "center" }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+
+        {/* Toggle Story / Post */}
+        <div style={{ display: "flex", background: "var(--card)", borderRadius: 12, padding: 3, gap: 2, flex: 1, maxWidth: 200, margin: "0 auto" }}>
+          {(["story", "post"] as const).map((m) => (
+            <button key={m} onClick={() => { setMode(m); setStep("photo"); setSelectedFile(null); setPreviewUrl(null); }}
+              style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13,
+                background: mode === m ? "var(--p)" : "transparent", color: mode === m ? "#fff" : "var(--mt)" }}>
+              {m === "story" ? "Story" : "Post"}
+            </button>
+          ))}
+        </div>
+
+        {step === "details" && (
+          <button onClick={() => { setStep("photo"); setSelectedFile(null); setPreviewUrl(null); }}
+            style={{ background: "none", border: "none", color: "var(--p)", fontSize: 13, cursor: "pointer" }}>
+            Trocar
+          </button>
+        )}
       </div>
+
+      {mode === "story" && step === "photo" && (
+        <div style={{ padding: "0 20px 8px", textAlign: "center" }}>
+          <span style={{ fontSize: 11, color: "var(--mt)", background: "var(--card)", padding: "4px 12px", borderRadius: 20 }}>Dura 2h · visível para seus seguidores</span>
+        </div>
+      )}
+
       <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 40px" }}>
         {step === "photo" && (
           <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, background: "var(--card)", border: "2px dashed var(--bd)", borderRadius: 24, minHeight: 340, cursor: "pointer" }}>
             <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} style={{ display: "none" }} />
-            <div style={{ fontSize: 56 }}>📷</div>
+            <CameraIcon size={56} color="var(--mt)" />
             <div style={{ fontSize: 16, fontWeight: 700, color: "var(--txt)" }}>Tirar foto</div>
             <div style={{ fontSize: 13, color: "var(--mt)" }}>Toque para abrir a câmera</div>
           </label>
         )}
+
         {step === "details" && (
           <>
-            {previewUrl && <div style={{ borderRadius: 18, overflow: "hidden", marginBottom: 20, aspectRatio: "4/5" }}><img src={previewUrl} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} alt="preview" /></div>}
+            {previewUrl && (
+              <div style={{ borderRadius: 18, overflow: "hidden", marginBottom: 20, aspectRatio: "4/5" }}>
+                <img src={previewUrl} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} alt="preview" />
+              </div>
+            )}
+
+            {/* Venue */}
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 13, fontWeight: 900, color: "var(--txt)", marginBottom: 10 }}>📍 Em qual rolê você está?</div>
+              <div style={{ fontSize: 13, fontWeight: 900, color: "var(--txt)", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                <PinIcon size={13} color="var(--p)" /> Em qual rolê você está? {mode === "story" && <span style={{ color: "var(--mt)", fontWeight: 400 }}>(opcional)</span>}
+              </div>
               {selectedVenue ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--pd)", border: "0.5px solid #9D4EDD44", borderRadius: 12, padding: "10px 14px" }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: "var(--p)", flex: 1 }}>{selectedVenue.name}</span>
                   <span style={{ fontSize: 11, color: "var(--mt)" }}>{selectedVenue.hood}</span>
-                  <button onClick={() => setSelectedVenue(null)} style={{ background: "none", border: "none", color: "var(--mt)", cursor: "pointer", fontSize: 14, marginLeft: 4 }}>✕</button>
+                  <button onClick={() => setSelectedVenue(null)} style={{ background: "none", border: "none", color: "var(--mt)", cursor: "pointer", fontSize: 14 }}>✕</button>
                 </div>
               ) : (
                 <>
@@ -392,16 +568,34 @@ function PostModal({ venues, profile, onClose, onPosted }: { venues: Venue[]; pr
                 </>
               )}
             </div>
-            <div style={{ marginBottom: 28 }}>
-              <div style={{ fontSize: 13, fontWeight: 900, color: "var(--txt)", marginBottom: 10 }}>⏰ Por quanto tempo?</div>
-              <div style={{ display: "flex", gap: 10 }}>
-                {([2, 4, 6, 8] as const).map((h) => (
-                  <button key={h} onClick={() => setDuration(h)} style={{ flex: 1, padding: "14px 0", borderRadius: 14, border: "0.5px solid", borderColor: duration === h ? "var(--p)" : "var(--bd)", background: duration === h ? "var(--pd)" : "var(--card)", color: duration === h ? "var(--p)" : "var(--mt)", fontWeight: 900, fontSize: 15, cursor: "pointer" }}>{h}h</button>
-                ))}
+
+            {/* Duração — só para Post */}
+            {mode === "post" && (
+              <div style={{ marginBottom: 28 }}>
+                <div style={{ fontSize: 13, fontWeight: 900, color: "var(--txt)", marginBottom: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                  <ClockIcon size={13} color="var(--p)" /> Por quanto tempo?
+                </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  {([2, 4, 6, 8] as const).map((h) => (
+                    <button key={h} onClick={() => setDuration(h)} style={{ flex: 1, padding: "14px 0", borderRadius: 14, border: "0.5px solid", borderColor: duration === h ? "var(--p)" : "var(--bd)", background: duration === h ? "var(--pd)" : "var(--card)", color: duration === h ? "var(--p)" : "var(--mt)", fontWeight: 900, fontSize: 15, cursor: "pointer" }}>{h}h</button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {mode === "story" && (
+              <div style={{ marginBottom: 20, background: "var(--card)", borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+                <ClockIcon size={14} color="var(--mt)" />
+                <span style={{ fontSize: 13, color: "var(--mt)" }}>Story expira em <strong style={{ color: "var(--txt)" }}>2 horas</strong></span>
+              </div>
+            )}
+
             {error && <div style={{ color: "#EF4444", fontSize: 13, marginBottom: 12, textAlign: "center" }}>{error}</div>}
-            <button className="btn-primary" onClick={handlePost} disabled={!selectedVenue || loading} style={{ opacity: !selectedVenue || loading ? 0.6 : 1 }}>{loading ? "Publicando..." : "🚀 Publicar agora"}</button>
+            <button className="btn-primary" onClick={handlePublish}
+              disabled={(mode === "post" && !selectedVenue) || loading}
+              style={{ opacity: ((mode === "post" && !selectedVenue) || loading) ? 0.6 : 1 }}>
+              {loading ? "Publicando..." : mode === "story" ? "Publicar story" : "Publicar post"}
+            </button>
           </>
         )}
       </div>
@@ -436,7 +630,7 @@ function SearchTab({ venues, loading, userLocation, onVenuePress }: { venues: Ve
       <div style={{ fontSize: 22, fontWeight: 900, color: "var(--txt)", marginBottom: 16 }}>Buscar</div>
       <div style={{ display: "flex", gap: 8, marginBottom: 20, alignItems: "center" }}>
         <div style={{ flex: 1, display: "flex", alignItems: "center", background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 14, padding: "0 14px", gap: 10 }}>
-          <span style={{ color: "var(--mt)" }}>🔍</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.8" fill="var(--mt)"/><line x1="12" y1="12" x2="18.2" y2="5.8" strokeLinecap="round"/></svg>
           <input style={{ flex: 1, background: "transparent", border: "none", color: "var(--txt)", fontSize: 14, padding: "13px 0", outline: "none" }} placeholder="Rolê, bairro, estilo..." value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
         <button onClick={() => setViewMode(viewMode === "list" ? "map" : "list")} style={{ width: 48, height: 48, borderRadius: 14, flexShrink: 0, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", border: "0.5px solid", borderColor: viewMode === "map" ? "var(--p)" : "var(--bd)", background: viewMode === "map" ? "var(--pd)" : "var(--card)", color: viewMode === "map" ? "var(--p)" : "var(--mt)" }}>
@@ -467,7 +661,7 @@ function SearchTab({ venues, loading, userLocation, onVenuePress }: { venues: Ve
               {activeFilters > 0 && <button onClick={clearFilters} style={{ background: "none", border: "none", color: "var(--p)", fontSize: 12, cursor: "pointer" }}>Limpar filtros</button>}
             </div>
             {filtered.map((v) => <VenueCard key={v.id} venue={v} userLocation={userLocation} onClick={() => onVenuePress(v)} />)}
-            {filtered.length === 0 && <div style={{ textAlign: "center", paddingTop: 40, color: "var(--mt)" }}><div style={{ fontSize: 36, marginBottom: 10 }}>🔍</div><div style={{ fontWeight: 900 }}>Nenhum lugar encontrado</div></div>}
+            {filtered.length === 0 && <div style={{ textAlign: "center", paddingTop: 40, color: "var(--mt)" }}><div style={{ display:"flex", justifyContent:"center", marginBottom: 10 }}><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="1.5"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.8" fill="var(--mt)"/><line x1="12" y1="12" x2="18.2" y2="5.8" strokeLinecap="round"/></svg></div><div style={{ fontWeight: 900 }}>Nenhum lugar encontrado</div></div>}
           </>
         )
       )}
@@ -516,6 +710,7 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
   const [userId, setUserId] = useState<string | null>(null);
   const [agendaMsg, setAgendaMsg] = useState(false);
   const [activeTab, setActiveTab] = useState<"grid" | "info">("grid");
+  const [liked, setLiked] = useState(false);
 
   const dist = userLocation && v.lat && v.lng ? formatDist(haversine(userLocation.lat, userLocation.lng, v.lat, v.lng)) : null;
 
@@ -575,21 +770,26 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
 
       {/* Nome, bairro, distância, tags */}
       <div style={{ padding: "14px 20px 0" }}>
-        <div style={{ fontSize: 17, fontWeight: 900, color: "var(--txt)", marginBottom: 2 }}>{v.name}</div>
-        <div style={{ fontSize: 13, color: "var(--mt)", marginBottom: dist ? 4 : 0 }}>{v.hood}</div>
-        {dist && <div style={{ fontSize: 12, color: "var(--cy)", fontWeight: 700, marginBottom: 4 }}>📍 {dist} de você</div>}
+        <div style={{ fontSize: 17, fontWeight: 900, color: "var(--txt)", marginBottom: 2 }}>{v.name} <span style={{ fontWeight: 400, color: "var(--mt)" }}>— {v.hood}</span></div>
+        {dist && <div style={{ fontSize: 12, color: "var(--cy)", fontWeight: 700, marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}><PinIcon size={12} color="var(--cy)" /> {dist} de você</div>}
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
           {(v.tags || []).map((t) => <span key={t} style={{ background: "var(--pd)", color: "var(--p)", fontSize: 11, padding: "3px 10px", borderRadius: 20, border: "0.5px solid #9D4EDD44", fontWeight: 700 }}>{t}</span>)}
         </div>
       </div>
 
       {/* Botões */}
-      <div style={{ display: "flex", gap: 10, padding: "14px 20px 20px" }}>
+      <div style={{ display: "flex", gap: 8, padding: "14px 20px 8px" }}>
         <button onClick={toggleFollow} style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "0.5px solid", borderColor: isFollowing ? "var(--bd)" : "var(--p)", background: isFollowing ? "transparent" : "var(--p)", color: isFollowing ? "var(--txt)" : "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
           {isFollowing ? "✓ Seguindo" : "+ Seguir"}
         </button>
-        <button onClick={() => setAgendaMsg(true)} style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "0.5px solid var(--bd)", background: "transparent", color: "var(--txt)", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-          📅 Agenda
+        <button onClick={() => setAgendaMsg(true)} style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "0.5px solid var(--bd)", background: "transparent", color: "var(--txt)", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          <CalendarIcon size={15} /> Agenda
+        </button>
+        <button onClick={() => setLiked(l => !l)} style={{ width: 44, padding: "11px 0", borderRadius: 12, border: "0.5px solid var(--bd)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <HeartIcon filled={liked} size={18} color={liked ? "var(--pk)" : "var(--mt)"} />
+        </button>
+        <button style={{ width: 44, padding: "11px 0", borderRadius: 12, border: "0.5px solid var(--bd)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <ShareIcon size={18} color="var(--mt)" />
         </button>
       </div>
 
@@ -632,7 +832,7 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
             </div>
           ) : (
             <div style={{ textAlign: "center", padding: "60px 24px", color: "var(--mt)" }}>
-              <div style={{ fontSize: 48, marginBottom: 14 }}>📸</div>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}><CameraIcon size={48} color="var(--mt)" /></div>
               <div style={{ fontWeight: 900, fontSize: 15, color: "var(--txt)", marginBottom: 8 }}>Nenhuma foto ainda</div>
               <div style={{ fontSize: 13 }}>Seja o primeiro a postar aqui!</div>
             </div>
@@ -657,15 +857,15 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
           {/* Grid de info */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             {[
-              { e: "💰", label: "Preço", value: v.price },
-              { e: "🕒", label: "Fecha às", value: v.close_time || "—" },
-              { e: "🚇", label: "Transporte", value: v.transit || "—" },
-              { e: "🅿️", label: "Estacionamento", value: v.parking ? "Disponível" : "Sem vaga" },
-              { e: "🎫", label: "Entrada", value: v.entry || "Gratuita" },
-              { e: "🪑", label: "Assento", value: v.has_seat ? "Tem assento" : "Em pé" },
+              { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>, label: "Preço", value: v.price },
+              { icon: <ClockIcon size={18} color="var(--mt)" />, label: "Fecha às", value: v.close_time || "—" },
+              { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>, label: "Transporte", value: v.transit || "—" },
+              { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="22" height="18" rx="2"/><path d="M1 9h22"/><path d="M1 15h22"/></svg>, label: "Estacionamento", value: v.parking ? "Disponível" : "Sem vaga" },
+              { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2z"/><line x1="9" y1="12" x2="15" y2="12"/></svg>, label: "Entrada", value: v.entry || "Gratuita" },
+              { icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 9V7a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M20 9H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z"/></svg>, label: "Assento", value: v.has_seat ? "Tem assento" : "Em pé" },
             ].map((item) => (
               <div key={item.label} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 14, padding: "14px 16px" }}>
-                <div style={{ fontSize: 22, marginBottom: 8 }}>{item.e}</div>
+                <div style={{ marginBottom: 8 }}>{item.icon}</div>
                 <div style={{ fontSize: 11, color: "var(--mt)", marginBottom: 3 }}>{item.label}</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--txt)" }}>{item.value}</div>
               </div>
@@ -675,7 +875,7 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
           {/* Endereço */}
           {v.address && (
             <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 14, padding: "16px 18px", display: "flex", gap: 14 }}>
-              <span style={{ fontSize: 20 }}>📍</span>
+              <PinIcon size={20} color="var(--mt)" />
               <div>
                 <div style={{ fontSize: 11, color: "var(--mt)", marginBottom: 4, letterSpacing: 0.5 }}>ENDEREÇO</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--txt)", lineHeight: 1.6 }}>{v.address}</div>
@@ -747,18 +947,18 @@ function ChatTab() {
 function LojaTab() {
   const myPts = 340;
   const rewards = [
-    { n: "Drink grátis no Bar Brahma", pts: 200, e: "🍺" },
-    { n: "1 like extra para dar", pts: 50, e: "💘" },
-    { n: "Entrada grátis Cine Joia", pts: 500, e: "🎫" },
-    { n: "Fura-fila (1 uso)", pts: 150, e: "⚡" },
-    { n: "Revelar curtida extra", pts: 100, e: "👀" },
+    { n: "Drink grátis no Bar Brahma", pts: 200, icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--p)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 11l1.5-7.5L2 5l2 9a5 5 0 0 0 5 4h2a5 5 0 0 0 5-4z"/><path d="M8.5 2.5V5"/><path d="M16.5 5c0-1-1-2-2-2s-2 1-2 2 1 2 2 2 2-1 2-2z"/></svg> },
+    { n: "1 like extra para dar", pts: 50, icon: <HeartIcon size={26} color="var(--p)" /> },
+    { n: "Entrada grátis Cine Joia", pts: 500, icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--p)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2z"/><line x1="9" y1="12" x2="15" y2="12"/></svg> },
+    { n: "Fura-fila (1 uso)", pts: 150, icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--p)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> },
+    { n: "Revelar curtida extra", pts: 100, icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--p)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/></svg> },
   ];
   return (
     <div style={{ padding: "16px 20px" }}>
       <div style={{ fontSize: 22, fontWeight: 900, color: "var(--txt)", marginBottom: 16 }}>Lojinha</div>
       <div style={{ background: "#9D4EDD18", border: "0.5px solid #9D4EDD35", borderRadius: 16, padding: 16, marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ fontSize: 28 }}>⭐</span>
+          <StarIcon size={28} />
           <div>
             <div style={{ fontSize: 9, color: "var(--mt)", fontWeight: 900, letterSpacing: 1 }}>SEU SALDO</div>
             <div style={{ fontSize: 26, fontWeight: 900, color: "var(--p)" }}>{myPts} pts</div>
@@ -770,7 +970,7 @@ function LojaTab() {
       {rewards.map((item) => (
         <div key={item.n} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, padding: 14, marginBottom: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <span style={{ fontSize: 26 }}>{item.e}</span>
+            {item.icon}
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--txt)" }}>{item.n}</div>
               <div style={{ fontSize: 12, color: item.pts <= myPts ? "var(--p)" : "var(--mt)", fontWeight: 900, marginTop: 2 }}>{item.pts} pts{item.pts > myPts ? " · insuficiente" : ""}</div>
@@ -861,9 +1061,14 @@ function PerfilTab({ profile, setProfile, onSignOut }: { profile: Profile | null
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
-        {[{ l: "Rolês visitados", v: "0", e: "📍" }, { l: "Posts ativos", v: "0", e: "📸" }, { l: "Seguidores", v: "0", e: "👥" }, { l: "Seguindo", v: "0", e: "💜" }].map((s) => (
+        {[
+          { l: "Rolês visitados", v: "0", icon: <PinIcon size={22} color="var(--p)" /> },
+          { l: "Posts ativos", v: "0", icon: <CameraIcon size={22} color="var(--p)" /> },
+          { l: "Seguidores", v: "0", icon: <UsersIcon size={22} color="var(--p)" /> },
+          { l: "Seguindo", v: "0", icon: <HeartIcon size={22} color="var(--p)" /> },
+        ].map((s) => (
           <div key={s.l} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 14, padding: 14, textAlign: "center" }}>
-            <div style={{ fontSize: 22, marginBottom: 4 }}>{s.e}</div>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 4 }}>{s.icon}</div>
             <div style={{ fontSize: 24, fontWeight: 900, color: "var(--txt)" }}>{s.v}</div>
             <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>{s.l}</div>
           </div>
@@ -872,7 +1077,7 @@ function PerfilTab({ profile, setProfile, onSignOut }: { profile: Profile | null
 
       {/* Galeria (premium) */}
       <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, padding: 20, marginBottom: 16, textAlign: "center" }}>
-        <div style={{ fontSize: 28, marginBottom: 8 }}>🔒</div>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><LockIcon size={28} color="var(--mt)" /></div>
         <div style={{ fontSize: 15, fontWeight: 900, color: "var(--txt)", marginBottom: 4 }}>Galeria de fotos</div>
         <div style={{ fontSize: 12, color: "var(--mt)", marginBottom: 14 }}>Disponível para assinantes Vybe+</div>
         <button style={{ background: "linear-gradient(135deg, #9D4EDD, #FF006E)", color: "#fff", border: "none", borderRadius: 12, padding: "10px 24px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Assinar Vybe+</button>
@@ -880,17 +1085,22 @@ function PerfilTab({ profile, setProfile, onSignOut }: { profile: Profile | null
 
       {/* Menu */}
       <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, overflow: "hidden" }}>
-        {[{ l: "Editar perfil", e: "✏️" }, { l: "Privacidade", e: "🔒" }, { l: "Notificações", e: "🔔" }, { l: "Suporte", e: "💬" }].map((item) => (
+        {[
+          { l: "Editar perfil", icon: <EditIcon size={16} color="var(--mt)" /> },
+          { l: "Privacidade", icon: <LockIcon size={16} color="var(--mt)" /> },
+          { l: "Notificações", icon: <BellIcon size={16} color="var(--mt)" /> },
+          { l: "Suporte", icon: <CommentIcon size={16} color="var(--mt)" /> },
+        ].map((item) => (
           <div key={item.l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "15px 16px", cursor: "pointer", borderBottom: "0.5px solid var(--bd)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 16 }}>{item.e}</span>
+              {item.icon}
               <span style={{ fontSize: 14, color: "var(--txt)" }}>{item.l}</span>
             </div>
             <span style={{ color: "var(--mt)", fontSize: 18 }}>›</span>
           </div>
         ))}
         <div onClick={handleSignOut} style={{ display: "flex", alignItems: "center", gap: 12, padding: "15px 16px", cursor: "pointer" }}>
-          <span style={{ fontSize: 16 }}>🚪</span>
+          <LogoutIcon size={16} color="#EF4444" />
           <span style={{ fontSize: 14, color: "#EF4444" }}>Sair da conta</span>
         </div>
       </div>

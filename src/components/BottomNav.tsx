@@ -15,8 +15,10 @@ function IconSearch({ active }: { active: boolean }) {
   const c = active ? "var(--p)" : "var(--mt)";
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-      <circle cx="11" cy="11" r="7" stroke={c} strokeWidth="1.8" />
-      <path d="M16.5 16.5L21 21" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="9" stroke={c} strokeWidth="1.8" />
+      <circle cx="12" cy="12" r="5" stroke={c} strokeWidth="1.4" />
+      <circle cx="12" cy="12" r="1.8" fill={c} />
+      <line x1="12" y1="12" x2="18.2" y2="5.8" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
