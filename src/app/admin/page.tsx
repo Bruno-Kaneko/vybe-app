@@ -9,6 +9,7 @@ const EMPTY_FORM = {
   name: "", hood: "", address: "", tags: "", price: "$$",
   close_time: "", entry: "Grátis", parking: false, transit: "",
   has_seat: false, vibe_type: "resenha", color: "#9D4EDD", initial: "", occ: 0,
+  image_url: "",
 };
 
 type Venue = typeof EMPTY_FORM & { id: number; status: string };
@@ -22,6 +23,7 @@ export default function AdminPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
@@ -98,6 +100,18 @@ export default function AdminPage() {
     setTab("aprovados");
   }
 
+  async function handleImageUpload(file: File) {
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("venues").upload(path, file, { upsert: true });
+    if (!error) {
+      const { data } = supabase.storage.from("venues").getPublicUrl(path);
+      set("image_url", data.publicUrl);
+    }
+    setUploading(false);
+  }
+
   const pendentes = venues.filter((v) => v.status === "pendente");
   const aprovados = venues.filter((v) => v.status === "aprovado");
 
@@ -161,8 +175,8 @@ export default function AdminPage() {
             pendentes.map((v) => (
               <div key={v.id} style={{ background: "#0E0E1C", border: "0.5px solid #F59E0B44", borderRadius: 16, padding: 16, marginBottom: 12 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: v.color + "25", border: `1.5px solid ${v.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 900, color: v.color, flexShrink: 0 }}>
-                    {v.initial}
+                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: v.color + "25", border: `1.5px solid ${v.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 900, color: v.color, flexShrink: 0, overflow: "hidden" }}>
+                    {v.image_url ? <img src={v.image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : v.initial}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 900, fontSize: 15 }}>{v.name}</div>
@@ -218,8 +232,8 @@ export default function AdminPage() {
           ) : (
             aprovados.map((v) => (
               <div key={v.id} style={{ background: "#0E0E1C", border: "0.5px solid #1E1E38", borderRadius: 14, padding: "14px 16px", marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: "50%", background: v.color + "25", border: `1.5px solid ${v.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: v.color, flexShrink: 0 }}>
-                  {v.initial}
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: v.color + "25", border: `1.5px solid ${v.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: v.color, flexShrink: 0, overflow: "hidden" }}>
+                  {v.image_url ? <img src={v.image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : v.initial}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{v.name}</div>
@@ -278,8 +292,27 @@ export default function AdminPage() {
               <label style={labelStyle}>TRANSPORTE PRÓXIMO</label>
               <input style={inputStyle} value={form.transit} onChange={(e) => set("transit", e.target.value)} placeholder="Ex: Metrô Liberdade (300m)" />
             </div>
-            <div>
-              <label style={labelStyle}>COR DO AVATAR</label>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={labelStyle}>FOTO DO LUGAR</label>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{ width: 56, height: 56, borderRadius: "50%", background: form.image_url ? "transparent" : form.color + "25", border: `1.5px solid ${form.color}`, overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 900, color: form.color }}>
+                  {form.image_url
+                    ? <img src={form.image_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    : form.initial || "?"}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <input type="file" accept="image/*" id="img-upload" style={{ display: "none" }}
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); }} />
+                  <label htmlFor="img-upload" style={{ display: "inline-block", background: "#1E1E38", color: "#9D4EDD", borderRadius: 10, padding: "9px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    {uploading ? "Enviando..." : form.image_url ? "Trocar foto" : "Escolher foto"}
+                  </label>
+                  {form.image_url && (
+                    <button onClick={() => set("image_url", "")} style={{ marginLeft: 8, background: "none", border: "none", color: "#EF4444", fontSize: 12, cursor: "pointer" }}>remover</button>
+                  )}
+                  <div style={{ fontSize: 11, color: "#6060A0", marginTop: 5 }}>JPG ou PNG · máx. 2MB</div>
+                </div>
+              </div>
+              <label style={{ ...labelStyle, marginTop: 14 }}>COR DO AVATAR (usada quando não há foto)</label>
               <div style={{ display: "flex", gap: 8 }}>
                 {["#9D4EDD", "#FF006E", "#00D9FF", "#F59E0B", "#22C55E"].map((c) => (
                   <div key={c} onClick={() => set("color", c)} style={{ width: 32, height: 32, borderRadius: "50%", background: c, cursor: "pointer", border: form.color === c ? "3px solid #fff" : "3px solid transparent" }} />
