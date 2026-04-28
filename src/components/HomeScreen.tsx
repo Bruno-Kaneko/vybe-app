@@ -69,12 +69,12 @@ export default function HomeScreen({ onSignOut }: { onSignOut: () => void }) {
         setLoadingVenues(false);
       });
 
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session?.user) return;
       supabase
         .from("profiles")
         .select("*")
-        .eq("id", data.user.id)
+        .eq("id", session.user.id)
         .single()
         .then(({ data: p }) => { if (p) setProfile(p as Profile); });
     });
