@@ -40,7 +40,7 @@ export default function LoginPage() {
   }
 
   if (screen === "register") return <RegisterScreen onBack={() => setScreen("login")} onDone={() => setScreen("home")} />;
-  if (screen === "home") return <HomeScreen />;
+  if (screen === "home") return <HomeScreen onSignOut={() => setScreen("login")} />;
 
   return (
     <main style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 28px 40px" }}>

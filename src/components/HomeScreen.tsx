@@ -6,6 +6,14 @@ import { supabase } from "@/lib/supabase";
 
 type Tab = "home" | "search" | "chat" | "loja" | "perfil";
 
+type Profile = {
+  id: string;
+  nome: string;
+  bairro: string;
+  tipos_favoritos: string[];
+  status: string;
+};
+
 type Venue = {
   id: number;
   name: string;
@@ -44,10 +52,11 @@ function VenueAvatar({ v, size = 46 }: { v: Venue; size?: number }) {
   );
 }
 
-export default function HomeScreen() {
+export default function HomeScreen({ onSignOut }: { onSignOut: () => void }) {
   const [tab, setTab] = useState<Tab>("home");
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loadingVenues, setLoadingVenues] = useState(true);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
     supabase
@@ -59,6 +68,16 @@ export default function HomeScreen() {
         if (data) setVenues(data as Venue[]);
         setLoadingVenues(false);
       });
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+      supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", data.user.id)
+        .single()
+        .then(({ data: p }) => { if (p) setProfile(p as Profile); });
+    });
   }, []);
 
   return (
@@ -68,7 +87,7 @@ export default function HomeScreen() {
         {tab === "search" && <SearchTab venues={venues} loading={loadingVenues} />}
         {tab === "chat" && <ChatTab />}
         {tab === "loja" && <LojaTab />}
-        {tab === "perfil" && <PerfilTab />}
+        {tab === "perfil" && <PerfilTab profile={profile} onSignOut={onSignOut} />}
       </div>
       <BottomNav active={tab} onChange={(t) => setTab(t as Tab)} />
     </div>
@@ -444,29 +463,55 @@ function LojaTab() {
 }
 
 /* ── PERFIL ── */
-function PerfilTab() {
-  const STATUS_OPTIONS = [
-    { label: "Solteiro", color: "#22C55E", dot: "🟢" },
-    { label: "Namorando", color: "#EF4444", dot: "🔴" },
-    { label: "Ficando / Enrolado", color: "#F59E0B", dot: "🟡" },
-    { label: "Só curtindo", color: "var(--cy)", dot: "😎" },
-  ];
-  const [status, setStatus] = useState(0);
+const STATUS_OPTIONS = [
+  { label: "Solteiro", color: "#22C55E", dot: "🟢", key: "solteiro" },
+  { label: "Namorando", color: "#EF4444", dot: "🔴", key: "namorando" },
+  { label: "Ficando / Enrolado", color: "#F59E0B", dot: "🟡", key: "ficando" },
+  { label: "Só curtindo", color: "#00D9FF", dot: "😎", key: "curtindo" },
+];
+
+function PerfilTab({ profile, onSignOut }: { profile: Profile | null; onSignOut: () => void }) {
+  const [statusIdx, setStatusIdx] = useState(0);
+
+  useEffect(() => {
+    if (!profile) return;
+    const idx = STATUS_OPTIONS.findIndex((s) => s.key === profile.status);
+    setStatusIdx(idx >= 0 ? idx : 0);
+  }, [profile]);
+
+  async function handleStatusChange() {
+    const newIdx = (statusIdx + 1) % STATUS_OPTIONS.length;
+    setStatusIdx(newIdx);
+    if (profile) {
+      await supabase.from("profiles").update({ status: STATUS_OPTIONS[newIdx].key }).eq("id", profile.id);
+    }
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    onSignOut();
+  }
+
+  const initial = profile?.nome ? profile.nome.charAt(0).toUpperCase() : "?";
+  const nome = profile?.nome ?? "Carregando...";
+  const bairro = profile?.bairro ?? "";
 
   return (
     <div style={{ padding: "16px 20px" }}>
       <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <div style={{ width: 82, height: 82, borderRadius: "50%", background: "var(--p)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 900, color: "#fff", margin: "0 auto 14px" }}>J</div>
-        <div style={{ fontSize: 22, fontWeight: 900, color: "var(--txt)" }}>João Silva</div>
-        <div style={{ fontSize: 13, color: "var(--mt)", marginTop: 4 }}>Pinheiros · 26 anos</div>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 20, padding: "6px 14px", cursor: "pointer" }}
-          onClick={() => setStatus((s) => (s + 1) % STATUS_OPTIONS.length)}>
-          <span>{STATUS_OPTIONS[status].dot}</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: STATUS_OPTIONS[status].color }}>{STATUS_OPTIONS[status].label}</span>
+        <div style={{ width: 82, height: 82, borderRadius: "50%", background: "var(--p)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 900, color: "#fff", margin: "0 auto 14px" }}>
+          {initial}
+        </div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: "var(--txt)" }}>{nome}</div>
+        {bairro && <div style={{ fontSize: 13, color: "var(--mt)", marginTop: 4 }}>{bairro}</div>}
+        <div onClick={handleStatusChange} style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 20, padding: "6px 14px", cursor: "pointer" }}>
+          <span>{STATUS_OPTIONS[statusIdx].dot}</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: STATUS_OPTIONS[statusIdx].color }}>{STATUS_OPTIONS[statusIdx].label}</span>
         </div>
       </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
-        {[{ l: "Rolês visitados", v: "12", e: "📍" }, { l: "Avaliações", v: "8", e: "⭐" }, { l: "Seguidores", v: "84", e: "👥" }, { l: "Curtidas recebidas", v: "5", e: "💘" }].map((s) => (
+        {[{ l: "Rolês visitados", v: "0", e: "📍" }, { l: "Avaliações", v: "0", e: "⭐" }, { l: "Seguidores", v: "0", e: "👥" }, { l: "Curtidas recebidas", v: "0", e: "💘" }].map((s) => (
           <div key={s.l} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 14, padding: 14, textAlign: "center" }}>
             <div style={{ fontSize: 22, marginBottom: 4 }}>{s.e}</div>
             <div style={{ fontSize: 24, fontWeight: 900, color: "var(--txt)" }}>{s.v}</div>
@@ -474,9 +519,10 @@ function PerfilTab() {
           </div>
         ))}
       </div>
-      <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, overflow: "hidden" }}>
-        {[{ l: "Editar perfil", e: "✏️" }, { l: "Privacidade", e: "🔒" }, { l: "Notificações", e: "🔔" }, { l: "Suporte", e: "💬" }].map((item, i, arr) => (
-          <div key={item.l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "15px 16px", cursor: "pointer", borderBottom: i < arr.length - 1 ? "0.5px solid var(--bd)" : "none" }}>
+
+      <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, overflow: "hidden", marginBottom: 16 }}>
+        {[{ l: "Editar perfil", e: "✏️" }, { l: "Privacidade", e: "🔒" }, { l: "Notificações", e: "🔔" }, { l: "Suporte", e: "💬" }].map((item) => (
+          <div key={item.l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "15px 16px", cursor: "pointer", borderBottom: "0.5px solid var(--bd)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <span style={{ fontSize: 16 }}>{item.e}</span>
               <span style={{ fontSize: 14, color: "var(--txt)" }}>{item.l}</span>
@@ -484,6 +530,10 @@ function PerfilTab() {
             <span style={{ color: "var(--mt)", fontSize: 18 }}>›</span>
           </div>
         ))}
+        <div onClick={handleSignOut} style={{ display: "flex", alignItems: "center", gap: 12, padding: "15px 16px", cursor: "pointer" }}>
+          <span style={{ fontSize: 16 }}>🚪</span>
+          <span style={{ fontSize: 14, color: "#EF4444" }}>Sair da conta</span>
+        </div>
       </div>
     </div>
   );
