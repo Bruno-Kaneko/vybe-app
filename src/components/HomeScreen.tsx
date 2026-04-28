@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import BottomNav from "./BottomNav";
 import { supabase } from "@/lib/supabase";
 
@@ -289,69 +289,6 @@ function RealPostCard({ post }: { post: RealPost }) {
   );
 }
 
-/* ── CÂMERA NATIVA ── */
-function CameraCapture({ onCapture, onFallback }: { onCapture: (file: File) => void; onFallback: () => void }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const [ready, setReady] = useState(false);
-  const [err, setErr] = useState(false);
-
-  useEffect(() => {
-    navigator.mediaDevices
-      .getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false })
-      .then((s) => {
-        streamRef.current = s;
-        if (videoRef.current) {
-          videoRef.current.srcObject = s;
-          videoRef.current.onloadedmetadata = () => setReady(true);
-        }
-      })
-      .catch(() => { setErr(true); });
-
-    return () => { streamRef.current?.getTracks().forEach((t) => t.stop()); };
-  }, []);
-
-  function snap() {
-    const video = videoRef.current;
-    if (!video) return;
-    const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext("2d")?.drawImage(video, 0, 0);
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    canvas.toBlob((blob) => {
-      if (blob) onCapture(new File([blob], `vybe-${Date.now()}.jpg`, { type: "image/jpeg" }));
-    }, "image/jpeg", 0.9);
-  }
-
-  if (err) return (
-    <div style={{ textAlign: "center", padding: 32 }}>
-      <div style={{ fontSize: 40, marginBottom: 12 }}>📵</div>
-      <div style={{ fontSize: 14, color: "var(--txt)", fontWeight: 700, marginBottom: 8 }}>Câmera não disponível</div>
-      <div style={{ fontSize: 12, color: "var(--mt)", marginBottom: 20 }}>Permita o acesso à câmera nas configurações do navegador</div>
-      <button className="btn-outline" onClick={onFallback} style={{ width: "auto", padding: "10px 24px" }}>Usar arquivo</button>
-    </div>
-  );
-
-  return (
-    <div style={{ position: "relative", borderRadius: 18, overflow: "hidden", background: "#000", minHeight: 360 }}>
-      <video ref={videoRef} autoPlay playsInline muted style={{ width: "100%", display: "block", maxHeight: "62vh", objectFit: "cover" }} />
-      {!ready && (
-        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ color: "#fff", fontSize: 14, opacity: 0.7 }}>Abrindo câmera...</div>
-        </div>
-      )}
-      {ready && (
-        <div style={{ position: "absolute", bottom: 24, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
-          <button onClick={snap} style={{ width: 72, height: 72, borderRadius: "50%", background: "#fff", border: "5px solid rgba(255,255,255,0.4)", cursor: "pointer", padding: 0 }}>
-            <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "#fff", border: "2px solid rgba(0,0,0,0.15)" }} />
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ── POST MODAL ── */
 function PostModal({ venues, profile, onClose, onPosted }: {
   venues: Venue[];
@@ -421,7 +358,7 @@ function PostModal({ venues, profile, onClose, onPosted }: {
       <div style={{ display: "flex", alignItems: "center", padding: "54px 20px 16px", gap: 12, flexShrink: 0 }}>
         <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--mt)", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>✕</button>
         <div style={{ fontSize: 18, fontWeight: 900, color: "var(--txt)" }}>
-          {step === "photo" ? "Escolher foto" : "Detalhes do post"}
+          {step === "photo" ? "Tirar foto" : "Detalhes do post"}
         </div>
         {step === "details" && (
           <button onClick={() => { setStep("photo"); setSelectedFile(null); setPreviewUrl(null); }}
@@ -433,16 +370,13 @@ function PostModal({ venues, profile, onClose, onPosted }: {
 
       <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 40px" }}>
         {step === "photo" && (
-          <CameraCapture
-            onCapture={(file) => {
-              setSelectedFile(file);
-              setPreviewUrl(URL.createObjectURL(file));
-              setStep("details");
-            }}
-            onFallback={() => document.getElementById("fallback-input")?.click()}
-          />
+          <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, background: "var(--card)", border: "2px dashed var(--bd)", borderRadius: 24, minHeight: 340, cursor: "pointer" }}>
+            <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} style={{ display: "none" }} />
+            <div style={{ fontSize: 56 }}>📷</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--txt)" }}>Tirar foto</div>
+            <div style={{ fontSize: 13, color: "var(--mt)" }}>Toque para abrir a câmera</div>
+          </label>
         )}
-        <input id="fallback-input" type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
 
         {step === "details" && (
           <>
