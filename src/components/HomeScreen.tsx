@@ -556,44 +556,41 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
         <button onClick={onClose} style={{ position: "absolute", top: 52, left: 16, width: 38, height: 38, borderRadius: "50%", background: "#00000070", border: "none", color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>←</button>
       </div>
 
-      {/* Avatar sobrepondo o cover */}
-      <div style={{ display: "flex", justifyContent: "center", marginTop: -50 }}>
-        <div style={{ width: 96, height: 96, borderRadius: "50%", border: "3px solid var(--bg)", overflow: "hidden", background: v.color + "30", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34, fontWeight: 900, color: v.color }}>
+      {/* Linha: avatar + stats (estilo Instagram) */}
+      <div style={{ display: "flex", alignItems: "center", gap: 20, padding: "0 20px", marginTop: -48 }}>
+        <div style={{ width: 86, height: 86, borderRadius: "50%", border: "3px solid var(--bg)", overflow: "hidden", background: v.color + "30", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900, color: v.color, flexShrink: 0 }}>
           {v.image_url ? <img src={v.image_url} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : v.initial}
         </div>
-      </div>
-
-      {/* Info */}
-      <div style={{ textAlign: "center", padding: "16px 24px 0" }}>
-        <div style={{ fontSize: 22, fontWeight: 900, color: "var(--txt)", marginBottom: 4 }}>{v.name}</div>
-        <div style={{ fontSize: 13, color: "var(--mt)", marginBottom: dist ? 6 : 12 }}>{v.hood}</div>
-        {dist && <div style={{ fontSize: 12, color: "var(--cy)", marginBottom: 12, fontWeight: 700 }}>📍 {dist} de você</div>}
-        <div style={{ display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap", marginBottom: 20 }}>
-          {(v.tags || []).map((t) => <span key={t} style={{ background: "var(--pd)", color: "var(--p)", fontSize: 11, padding: "4px 12px", borderRadius: 20, border: "0.5px solid #9D4EDD44", fontWeight: 700 }}>{t}</span>)}
-        </div>
-
-        {/* Stats */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 40, marginBottom: 20 }}>
-          <div style={{ textAlign: "center" }}>
+        <div style={{ flex: 1, display: "flex", gap: 0, paddingTop: 52 }}>
+          <div style={{ flex: 1, textAlign: "center" }}>
             <div style={{ fontSize: 20, fontWeight: 900, color: "var(--txt)" }}>{venuePosts.length}</div>
             <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>posts</div>
           </div>
-          <div style={{ width: 1, background: "var(--bd)" }} />
-          <div style={{ textAlign: "center" }}>
+          <div style={{ flex: 1, textAlign: "center" }}>
             <div style={{ fontSize: 20, fontWeight: 900, color: "var(--txt)" }}>{followers}</div>
             <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>seguidores</div>
           </div>
         </div>
+      </div>
 
-        {/* Botões */}
-        <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
-          <button onClick={toggleFollow} style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "0.5px solid", borderColor: isFollowing ? "var(--bd)" : "var(--p)", background: isFollowing ? "transparent" : "var(--p)", color: isFollowing ? "var(--txt)" : "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-            {isFollowing ? "✓ Seguindo" : "+ Seguir"}
-          </button>
-          <button onClick={() => setAgendaMsg(true)} style={{ flex: 1, padding: "12px 0", borderRadius: 12, border: "0.5px solid var(--bd)", background: "transparent", color: "var(--txt)", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-            📅 Agenda
-          </button>
+      {/* Nome, bairro, distância, tags */}
+      <div style={{ padding: "14px 20px 0" }}>
+        <div style={{ fontSize: 17, fontWeight: 900, color: "var(--txt)", marginBottom: 2 }}>{v.name}</div>
+        <div style={{ fontSize: 13, color: "var(--mt)", marginBottom: dist ? 4 : 0 }}>{v.hood}</div>
+        {dist && <div style={{ fontSize: 12, color: "var(--cy)", fontWeight: 700, marginBottom: 4 }}>📍 {dist} de você</div>}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+          {(v.tags || []).map((t) => <span key={t} style={{ background: "var(--pd)", color: "var(--p)", fontSize: 11, padding: "3px 10px", borderRadius: 20, border: "0.5px solid #9D4EDD44", fontWeight: 700 }}>{t}</span>)}
         </div>
+      </div>
+
+      {/* Botões */}
+      <div style={{ display: "flex", gap: 10, padding: "14px 20px 20px" }}>
+        <button onClick={toggleFollow} style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "0.5px solid", borderColor: isFollowing ? "var(--bd)" : "var(--p)", background: isFollowing ? "transparent" : "var(--p)", color: isFollowing ? "var(--txt)" : "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+          {isFollowing ? "✓ Seguindo" : "+ Seguir"}
+        </button>
+        <button onClick={() => setAgendaMsg(true)} style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "0.5px solid var(--bd)", background: "transparent", color: "var(--txt)", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+          📅 Agenda
+        </button>
       </div>
 
       {agendaMsg && (
