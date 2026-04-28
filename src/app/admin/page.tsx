@@ -1,0 +1,241 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+
+const ADMIN_EMAIL = "brunoknk173@icloud.com";
+
+const EMPTY_FORM = {
+  name: "", hood: "", address: "", tags: "", price: "$$",
+  close_time: "", entry: "Grátis", parking: false, transit: "",
+  has_seat: false, vibe_type: "resenha", color: "#9D4EDD", initial: "", occ: 0,
+};
+
+type Venue = typeof EMPTY_FORM & { id: number };
+
+export default function AdminPage() {
+  const [authorized, setAuthorized] = useState<boolean | null>(null);
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user?.email === ADMIN_EMAIL) {
+        setAuthorized(true);
+        loadVenues();
+      } else {
+        setAuthorized(false);
+      }
+    });
+  }, []);
+
+  async function loadVenues() {
+    const { data } = await supabase.from("venues").select("*").order("id");
+    if (data) setVenues(data as Venue[]);
+  }
+
+  function set(key: string, value: unknown) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function handleSave() {
+    if (!form.name || !form.hood || !form.initial) {
+      setMsg("Nome, bairro e sigla são obrigatórios.");
+      return;
+    }
+    setLoading(true);
+    setMsg("");
+
+    const payload = {
+      ...form,
+      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      occ: Number(form.occ),
+    };
+
+    if (editingId) {
+      await supabase.from("venues").update(payload).eq("id", editingId);
+      setMsg("Lugar atualizado!");
+    } else {
+      await supabase.from("venues").insert(payload);
+      setMsg("Lugar adicionado!");
+    }
+
+    setForm(EMPTY_FORM);
+    setEditingId(null);
+    setLoading(false);
+    loadVenues();
+  }
+
+  function handleEdit(v: Venue) {
+    setForm({ ...v, tags: Array.isArray(v.tags) ? v.tags.join(", ") : v.tags });
+    setEditingId(v.id);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function handleDelete(id: number) {
+    if (!confirm("Deletar este lugar?")) return;
+    await supabase.from("venues").delete().eq("id", id);
+    loadVenues();
+  }
+
+  function handleCancel() {
+    setForm(EMPTY_FORM);
+    setEditingId(null);
+    setMsg("");
+  }
+
+  if (authorized === null) return (
+    <div style={{ minHeight: "100vh", background: "#08080F", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: 32, height: 32, borderRadius: "50%", border: "3px solid #9D4EDD", borderTopColor: "transparent", animation: "spin 0.8s linear infinite" }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+
+  if (!authorized) return (
+    <div style={{ minHeight: "100vh", background: "#08080F", display: "flex", alignItems: "center", justifyContent: "center", color: "#F0F0FA", flexDirection: "column", gap: 12 }}>
+      <div style={{ fontSize: 32 }}>🔒</div>
+      <div style={{ fontWeight: 900, fontSize: 18 }}>Acesso negado</div>
+      <div style={{ color: "#6060A0", fontSize: 14 }}>Somente o admin pode acessar esta página.</div>
+    </div>
+  );
+
+  const inputStyle = { background: "#12122A", border: "0.5px solid #1E1E38", borderRadius: 10, padding: "10px 14px", color: "#F0F0FA", fontSize: 14, outline: "none", width: "100%" };
+  const labelStyle = { fontSize: 11, color: "#6060A0", fontWeight: 700, letterSpacing: 1, display: "block", marginBottom: 5 };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#08080F", color: "#F0F0FA", padding: "32px 20px 60px", maxWidth: 700, margin: "0 auto" }}>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 900 }}>Painel Admin</div>
+          <div style={{ fontSize: 13, color: "#6060A0", marginTop: 2 }}>Gerenciar lugares do Vybe</div>
+        </div>
+        <button onClick={() => supabase.auth.signOut().then(() => window.location.href = "/")}
+          style={{ background: "#1E1E38", border: "none", color: "#6060A0", borderRadius: 10, padding: "8px 14px", cursor: "pointer", fontSize: 13 }}>
+          Sair
+        </button>
+      </div>
+
+      {/* Formulário */}
+      <div style={{ background: "#0E0E1C", border: "0.5px solid #1E1E38", borderRadius: 18, padding: 20, marginBottom: 28 }}>
+        <div style={{ fontSize: 15, fontWeight: 900, marginBottom: 18 }}>
+          {editingId ? "✏️ Editar lugar" : "➕ Adicionar lugar"}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <div>
+            <label style={labelStyle}>NOME *</label>
+            <input style={inputStyle} value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Ex: Cine Joia" />
+          </div>
+          <div>
+            <label style={labelStyle}>SIGLA (2 letras) *</label>
+            <input style={inputStyle} value={form.initial} onChange={(e) => set("initial", e.target.value.toUpperCase().slice(0, 2))} placeholder="Ex: CJ" />
+          </div>
+          <div>
+            <label style={labelStyle}>BAIRRO *</label>
+            <input style={inputStyle} value={form.hood} onChange={(e) => set("hood", e.target.value)} placeholder="Ex: Liberdade" />
+          </div>
+          <div>
+            <label style={labelStyle}>ENDEREÇO</label>
+            <input style={inputStyle} value={form.address} onChange={(e) => set("address", e.target.value)} placeholder="Ex: Av. Brig. Luis Antonio, 82" />
+          </div>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={labelStyle}>TAGS (separadas por vírgula)</label>
+            <input style={inputStyle} value={form.tags} onChange={(e) => set("tags", e.target.value)} placeholder="Ex: Eletrônica, House, Techno" />
+          </div>
+          <div>
+            <label style={labelStyle}>PREÇO</label>
+            <select style={inputStyle} value={form.price} onChange={(e) => set("price", e.target.value)}>
+              <option>$</option><option>$$</option><option>$$$</option>
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>ENTRADA</label>
+            <input style={inputStyle} value={form.entry} onChange={(e) => set("entry", e.target.value)} placeholder="Ex: Grátis ou R$50" />
+          </div>
+          <div>
+            <label style={labelStyle}>FECHA ÀS</label>
+            <input style={inputStyle} value={form.close_time} onChange={(e) => set("close_time", e.target.value)} placeholder="Ex: 05:00" />
+          </div>
+          <div>
+            <label style={labelStyle}>TRANSPORTE PRÓXIMO</label>
+            <input style={inputStyle} value={form.transit} onChange={(e) => set("transit", e.target.value)} placeholder="Ex: Metrô Liberdade (300m)" />
+          </div>
+          <div>
+            <label style={labelStyle}>COR DO AVATAR</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {["#9D4EDD", "#FF006E", "#00D9FF", "#F59E0B", "#22C55E"].map((c) => (
+                <div key={c} onClick={() => set("color", c)} style={{ width: 32, height: 32, borderRadius: "50%", background: c, cursor: "pointer", border: form.color === c ? "3px solid #fff" : "3px solid transparent" }} />
+              ))}
+            </div>
+          </div>
+          <div>
+            <label style={labelStyle}>LOTAÇÃO ATUAL (0–100)</label>
+            <input style={inputStyle} type="number" min={0} max={100} value={form.occ} onChange={(e) => set("occ", e.target.value)} />
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }} onClick={() => set("parking", !form.parking)}>
+            <div style={{ width: 20, height: 20, borderRadius: 5, background: form.parking ? "#9D4EDD" : "#1E1E38", border: "0.5px solid #2E2E50", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>
+              {form.parking ? "✓" : ""}
+            </div>
+            <span style={{ fontSize: 13, color: "#6060A0" }}>Estacionamento próximo</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }} onClick={() => set("has_seat", !form.has_seat)}>
+            <div style={{ width: 20, height: 20, borderRadius: 5, background: form.has_seat ? "#9D4EDD" : "#1E1E38", border: "0.5px solid #2E2E50", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>
+              {form.has_seat ? "✓" : ""}
+            </div>
+            <span style={{ fontSize: 13, color: "#6060A0" }}>Tem lugares para sentar</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }} onClick={() => set("vibe_type", form.vibe_type === "paquera" ? "resenha" : "paquera")}>
+            <div style={{ width: 20, height: 20, borderRadius: 5, background: form.vibe_type === "paquera" ? "#FF006E" : "#1E1E38", border: "0.5px solid #2E2E50", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12 }}>
+              {form.vibe_type === "paquera" ? "✓" : ""}
+            </div>
+            <span style={{ fontSize: 13, color: "#6060A0" }}>Vibe: paquera</span>
+          </div>
+        </div>
+
+        {msg && <div style={{ marginTop: 14, fontSize: 13, color: msg.includes("!") ? "#22C55E" : "#EF4444", textAlign: "center" }}>{msg}</div>}
+
+        <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+          <button onClick={handleSave} disabled={loading} style={{ flex: 1, background: "#9D4EDD", color: "#fff", border: "none", borderRadius: 12, padding: 14, fontSize: 14, fontWeight: 800, cursor: "pointer", opacity: loading ? 0.7 : 1 }}>
+            {loading ? "Salvando..." : editingId ? "Salvar alterações" : "Adicionar lugar"}
+          </button>
+          {editingId && (
+            <button onClick={handleCancel} style={{ background: "#1E1E38", color: "#6060A0", border: "none", borderRadius: 12, padding: "14px 18px", fontSize: 14, cursor: "pointer" }}>
+              Cancelar
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Lista */}
+      <div style={{ fontSize: 11, color: "#6060A0", fontWeight: 900, letterSpacing: 1, marginBottom: 14 }}>{venues.length} LUGARES CADASTRADOS</div>
+      {venues.map((v) => (
+        <div key={v.id} style={{ background: "#0E0E1C", border: "0.5px solid #1E1E38", borderRadius: 14, padding: "14px 16px", marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: "50%", background: v.color + "25", border: `1.5px solid ${v.color}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: v.color, flexShrink: 0 }}>
+            {v.initial}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 14 }}>{v.name}</div>
+            <div style={{ fontSize: 12, color: "#6060A0", marginTop: 2 }}>{v.hood} · {v.entry} · {v.price}</div>
+          </div>
+          <button onClick={() => handleEdit(v)} style={{ background: "#1E1E38", border: "none", color: "#9D4EDD", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Editar</button>
+          <button onClick={() => handleDelete(v.id)} style={{ background: "#EF444420", border: "none", color: "#EF4444", borderRadius: 8, padding: "6px 12px", fontSize: 12, cursor: "pointer" }}>Deletar</button>
+        </div>
+      ))}
+
+      {venues.length === 0 && (
+        <div style={{ textAlign: "center", color: "#6060A0", paddingTop: 40 }}>
+          <div style={{ fontSize: 36, marginBottom: 10 }}>🏙️</div>
+          <div>Nenhum lugar cadastrado ainda.</div>
+          <div style={{ fontSize: 13, marginTop: 4 }}>Adicione o primeiro bar de SP!</div>
+        </div>
+      )}
+    </div>
+  );
+}
