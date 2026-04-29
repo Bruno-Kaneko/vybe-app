@@ -80,6 +80,8 @@ type SelectedUser = { id: string; nome: string; avatar_url?: string | null; stat
 
 type NotifItem = { type: "like" | "comment"; userName: string; avatarUrl?: string | null; content?: string; at: string };
 
+type StorySlide = { imageUrl: string; name: string; avatarUrl?: string | null; statusColor?: string; subLabel: string; timeLabel: string };
+
 type Message = {
   id: number;
   sender_id: string;
@@ -405,6 +407,85 @@ const DEMO_POSTS: RealPost[] = [
   },
 ];
 
+/* ── STORY VIEWER ── */
+function StoryViewer({ slides, onClose }: { slides: StorySlide[]; onClose: () => void }) {
+  const [idx, setIdx] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const DURATION = 5000;
+  const TICK = 50;
+
+  useEffect(() => {
+    setProgress(0);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (paused) return;
+    intervalRef.current = setInterval(() => {
+      setProgress((p) => {
+        if (p >= 100) {
+          if (idx < slides.length - 1) { setIdx((i) => i + 1); }
+          else { onClose(); }
+          return 0;
+        }
+        return p + (TICK / DURATION) * 100;
+      });
+    }, TICK);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [idx, paused, slides.length]);
+
+  function handleTap(e: React.MouseEvent) {
+    const x = e.clientX;
+    const w = window.innerWidth;
+    if (x < w * 0.35) { setIdx((i) => Math.max(0, i - 1)); }
+    else if (x > w * 0.65) { if (idx < slides.length - 1) setIdx((i) => i + 1); else onClose(); }
+  }
+
+  const slide = slides[idx];
+  if (!slide) return null;
+
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "#000", display: "flex", flexDirection: "column" }}
+      onClick={handleTap}
+      onMouseDown={() => setPaused(true)}
+      onMouseUp={() => setPaused(false)}
+      onTouchStart={() => setPaused(true)}
+      onTouchEnd={() => setPaused(false)}
+    >
+      {/* Progress bars */}
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10, display: "flex", gap: 3, padding: "48px 12px 8px" }}>
+        {slides.map((_, i) => (
+          <div key={i} style={{ flex: 1, height: 2.5, borderRadius: 2, background: "#ffffff40", overflow: "hidden" }}>
+            <div style={{ height: "100%", background: "#fff", width: i < idx ? "100%" : i === idx ? `${progress}%` : "0%" }} />
+          </div>
+        ))}
+      </div>
+
+      {/* Header */}
+      <div style={{ position: "absolute", top: 60, left: 0, right: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 14px" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 38, height: 38, borderRadius: "50%", overflow: "hidden", border: slide.statusColor ? `2.5px solid ${slide.statusColor}` : "2px solid #ffffff60", flexShrink: 0, background: "var(--p)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 900, color: "#fff" }}>
+            {slide.avatarUrl
+              ? <img src={slide.avatarUrl} alt={slide.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              : slide.name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#fff", textShadow: "0 1px 4px #000a" }}>{slide.name}</div>
+            <div style={{ fontSize: 11, color: "#ffffff99" }}>{slide.subLabel} · {slide.timeLabel}</div>
+          </div>
+        </div>
+        <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", fontSize: 26, lineHeight: 1, padding: "4px 8px" }}>×</button>
+      </div>
+
+      {/* Image */}
+      <img src={slide.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+
+      {/* Tap zones visual hint (left/right) — invisible */}
+    </div>
+  );
+}
+
 /* ── FEED ── */
 function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress, followedVenueIds, followsLoaded, onUserPress }: {
   venues: Venue[]; loading: boolean; profile: Profile | null;
@@ -419,6 +500,43 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress,
   const [showNotifs, setShowNotifs] = useState(false);
   const [notifs, setNotifs] = useState<NotifItem[]>([]);
   const [notifCount, setNotifCount] = useState(0);
+  const [storySlides, setStorySlides] = useState<StorySlide[]>([]);
+  const [showStory, setShowStory] = useState(false);
+
+  function openVenueStory(v: Venue) {
+    const venuePosts = (posts.length > 0 ? posts : DEMO_POSTS).filter((p) => p.venue_id === v.id);
+    const slides: StorySlide[] = venuePosts.length > 0
+      ? venuePosts.map((p) => ({
+          imageUrl: p.image_url,
+          name: v.name,
+          avatarUrl: v.image_url,
+          subLabel: v.hood,
+          timeLabel: timeLeft(p.expires_at),
+        }))
+      : v.image_url
+        ? [{ imageUrl: v.image_url, name: v.name, avatarUrl: v.image_url, subLabel: v.hood, timeLabel: "" }]
+        : [];
+    if (slides.length === 0) { onVenuePress(v); return; }
+    setStorySlides(slides);
+    setShowStory(true);
+  }
+
+  function openUserStory(u: SelectedUser) {
+    const statusColor = STATUS_OPTIONS.find((s) => s.key === u.status)?.color;
+    const userPosts = (posts.length > 0 ? posts : DEMO_POSTS).filter((p) => p.user_id === u.id);
+    const slides: StorySlide[] = userPosts.map((p) => ({
+      imageUrl: p.image_url,
+      name: u.nome,
+      avatarUrl: u.avatar_url,
+      statusColor,
+      subLabel: p.venues?.name ?? "",
+      timeLabel: timeLeft(p.expires_at),
+    }));
+    if (slides.length === 0) { onUserPress(u); return; }
+    setStorySlides(slides);
+    setShowStory(true);
+  }
+
   const hoods = [...new Set(venues.map((v) => v.hood))].sort();
   const hoodFiltered = selectedHood ? venues.filter((v) => v.hood === selectedHood) : venues;
   const visibleVenues = followsLoaded && followedVenueIds.length > 0
@@ -547,7 +665,7 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress,
         return (
           <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 16, marginBottom: 8 }}>
             {visibleVenues.map((v) => (
-              <div key={`v-${v.id}`} onClick={() => onVenuePress(v)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0, cursor: "pointer" }}>
+              <div key={`v-${v.id}`} onClick={() => openVenueStory(v)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0, cursor: "pointer" }}>
                 <div style={{ padding: 2, borderRadius: "50%", background: "linear-gradient(135deg, #9D4EDD, #FF006E)" }}>
                   <div style={{ background: "var(--bg)", borderRadius: "50%", padding: 2 }}>
                     <VenueAvatar v={v} size={54} />
@@ -557,7 +675,7 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress,
               </div>
             ))}
             {userStories.map((u) => (
-              <div key={`u-${u.id}`} onClick={() => onUserPress(u)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0, cursor: "pointer" }}>
+              <div key={`u-${u.id}`} onClick={() => openUserStory(u)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0, cursor: "pointer" }}>
                 <div style={{ padding: 2, borderRadius: "50%", background: "linear-gradient(135deg, #00D9FF, #9D4EDD)" }}>
                   <div style={{ background: "var(--bg)", borderRadius: "50%", padding: 2 }}>
                     <UserAvatar profile={u} size={54} />
@@ -624,6 +742,9 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress,
           </div>
         );
       })()}
+
+      {/* Story viewer */}
+      {showStory && <StoryViewer slides={storySlides} onClose={() => setShowStory(false)} />}
 
       {/* Notifications panel */}
       {showNotifs && (
