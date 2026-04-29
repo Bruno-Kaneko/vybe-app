@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
-const ADMIN_EMAIL = "brunoknk173@icloud.com";
+const ADMIN_EMAILS = ["brunoknk173@icloud.com", "michel.lepine7@gmail.com"];
 
 const EMPTY_FORM = {
   name: "", hood: "", address: "", tags: "", price: "$$",
@@ -28,7 +28,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.user?.email === ADMIN_EMAIL) {
+      if (data.session?.user?.email && ADMIN_EMAILS.includes(data.session.user.email)) {
         setAuthorized(true);
         loadVenues();
       } else {
