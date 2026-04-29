@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const SLIDES = [
   {
@@ -59,37 +59,62 @@ const SLIDES = [
 
 export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState(0);
+  const [dragX, setDragX] = useState(0);
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
+  const isDraggingRef = useRef(false);
 
-  function finish() {
-    onDone();
-  }
+  useEffect(() => {
+    // Lock body scroll to prevent iOS bounce / black background
+    const prev = document.body.style.cssText;
+    document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.width = "100%";
+    document.body.style.height = "100%";
+    return () => { document.body.style.cssText = prev; };
+  }, []);
+
+  function finish() { onDone(); }
 
   function advance() {
-    if (step < SLIDES.length - 1) setStep(step + 1);
+    if (step < SLIDES.length - 1) setStep((s) => s + 1);
     else finish();
   }
 
   function goBack() {
-    if (step > 0) setStep(step - 1);
+    if (step > 0) setStep((s) => s - 1);
   }
 
   function handleTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
+    isDraggingRef.current = false;
+  }
+
+  function handleTouchMove(e: React.TouchEvent) {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const dx = e.touches[0].clientX - touchStartX.current;
+    const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
+    if (dy > 20 && !isDraggingRef.current) { return; } // vertical swipe, ignore
+    isDraggingRef.current = true;
+    // Rubber-band resistance at edges
+    const atStart = step === 0 && dx > 0;
+    const atEnd = step === SLIDES.length - 1 && dx < 0;
+    setDragX(dx * (atStart || atEnd ? 0.15 : 0.6));
   }
 
   function handleTouchEnd(e: React.TouchEvent) {
     if (touchStartX.current === null || touchStartY.current === null) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
-    if (Math.abs(dx) > 48 && dy < 80) {
+    setDragX(0);
+    if (Math.abs(dx) > 52 && dy < 80) {
       if (dx < 0) advance();
       else goBack();
     }
     touchStartX.current = null;
     touchStartY.current = null;
+    isDraggingRef.current = false;
   }
 
   const slide = SLIDES[step];
@@ -97,8 +122,9 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
 
   return (
     <div
-      style={{ position: "fixed", inset: 0, background: "#000", display: "flex", flexDirection: "column", overflow: "hidden", touchAction: "pan-y" }}
+      style={{ position: "fixed", inset: 0, background: "#000", display: "flex", flexDirection: "column", overflow: "hidden", overscrollBehavior: "none" }}
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       <button
@@ -111,7 +137,18 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
       <div
         key={step}
         className="onbo-slide"
-        style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 40px 24px", gap: 36 }}
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "0 40px 24px",
+          gap: 36,
+          transform: `translateX(${dragX}px)`,
+          transition: dragX === 0 ? "transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94)" : "none",
+          willChange: "transform",
+        }}
       >
         <div style={{ width: 112, height: 112, borderRadius: "50%", background: slide.iconBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           {slide.icon}
@@ -126,12 +163,14 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
           {SLIDES.map((s, i) => (
             <div
               key={i}
+              onClick={() => setStep(i)}
               style={{
                 height: 8,
                 width: i === step ? 26 : 8,
                 borderRadius: 4,
                 background: i === step ? s.dotColor : "rgba(255,255,255,0.18)",
                 transition: "width 0.3s ease, background 0.3s ease",
+                cursor: "pointer",
               }}
             />
           ))}

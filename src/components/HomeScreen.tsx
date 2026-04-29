@@ -317,7 +317,7 @@ export default function HomeScreen({ onSignOut }: { onSignOut: () => void }) {
     >
       <div style={{ flex: 1, overflowY: "auto", paddingBottom: 80 }}>
         {tab === "home" && <FeedTab venues={venues} loading={loadingVenues} profile={profile} onGoToProfile={() => setTab("perfil")} posts={posts} onVenuePress={setSelectedVenueProfile} followedVenueIds={followedVenueIds} followsLoaded={followsLoaded} onUserPress={setSelectedUser} />}
-        {tab === "search" && <SearchTab venues={venues} loading={loadingVenues} userLocation={userLocation} onVenuePress={setSelectedVenueProfile} />}
+        {tab === "search" && <SearchTab venues={venues} loading={loadingVenues} userLocation={userLocation} onVenuePress={setSelectedVenueProfile} onUserPress={setSelectedUser} />}
         {tab === "chat" && <ChatTab myId={profile?.id ?? null} />}
         {tab === "loja" && <LojaTab />}
         {tab === "perfil" && <PerfilTab profile={profile} setProfile={setProfile} onSignOut={onSignOut} />}
@@ -758,13 +758,22 @@ function CameraModal({ venues, profile, onClose, onPosted }: { venues: Venue[]; 
 /* ── BUSCAR ── */
 const FILTER_TYPES = ["Balada", "Bar", "Pagode", "Sertanejo", "Eletrônica", "Boteco", "Show", "Rock", "Jazz", "Techno", "Funk", "MPB"];
 
-function SearchTab({ venues, loading, userLocation, onVenuePress }: { venues: Venue[]; loading: boolean; userLocation: UserLocation | null; onVenuePress: (v: Venue) => void }) {
+function SearchTab({ venues, loading, userLocation, onVenuePress, onUserPress }: { venues: Venue[]; loading: boolean; userLocation: UserLocation | null; onVenuePress: (v: Venue) => void; onUserPress: (u: SelectedUser) => void }) {
   const [query, setQuery] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
   const [showFilter, setShowFilter] = useState(false);
   const [filterTypes, setFilterTypes] = useState<string[]>([]);
   const [filterPrices, setFilterPrices] = useState<string[]>([]);
   const [filterOcc, setFilterOcc] = useState<string[]>([]);
+  const [userResults, setUserResults] = useState<Profile[]>([]);
+
+  useEffect(() => {
+    if (query.trim().length < 2) { setUserResults([]); return; }
+    supabase.from("profiles").select("id, nome, bairro, status, avatar_url")
+      .ilike("nome", `%${query.trim()}%`)
+      .limit(6)
+      .then(({ data }) => { if (data) setUserResults(data as Profile[]); });
+  }, [query]);
 
   const activeFilters = filterTypes.length + filterPrices.length + filterOcc.length;
   const filtered = venues.filter((v) => {
@@ -808,6 +817,31 @@ function SearchTab({ venues, loading, userLocation, onVenuePress }: { venues: Ve
           <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>{[1, 2, 3].map((i) => <div key={i} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, padding: 14, height: 88 }} />)}</div>
         ) : (
           <>
+            {/* People results */}
+            {userResults.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 9, color: "var(--mt)", fontWeight: 900, letterSpacing: 1, marginBottom: 10 }}>PESSOAS</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {userResults.map((u) => {
+                    const badge = STATUS_OPTIONS.find((s) => s.key === (u.status ?? "solteiro")) ?? STATUS_OPTIONS[0];
+                    return (
+                      <div key={u.id} onClick={() => onUserPress({ id: u.id, nome: u.nome, avatar_url: u.avatar_url, status: u.status ?? "solteiro" })}
+                        style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 16, padding: "12px 14px", cursor: "pointer" }}>
+                        <UserAvatar profile={u} size={44} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: "var(--txt)" }}>{u.nome}</div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3 }}>
+                            <div style={{ width: 7, height: 7, borderRadius: "50%", background: badge.color }} />
+                            <span style={{ fontSize: 11, color: "var(--mt)" }}>{badge.label}{u.bairro ? ` · ${u.bairro}` : ""}</span>
+                          </div>
+                        </div>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <div style={{ fontSize: 9, color: "var(--mt)", fontWeight: 900, letterSpacing: 1 }}>{filtered.length} LUGARES</div>
               {activeFilters > 0 && <button onClick={clearFilters} style={{ background: "none", border: "none", color: "var(--p)", fontSize: 12, cursor: "pointer" }}>Limpar filtros</button>}
@@ -893,96 +927,84 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 70, overflowY: "auto" }}>
-      {/* Hero cover */}
-      <div style={{ position: "relative", width: "100%", height: 220, background: v.color + "20", overflow: "hidden" }}>
-        {v.image_url
-          ? <img src={v.image_url} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 80, fontWeight: 900, color: v.color, opacity: 0.2 }}>{v.initial}</div>
-        }
-        <button onClick={onClose} style={{ position: "absolute", top: 52, left: 16, width: 38, height: 38, borderRadius: "50%", background: "#00000070", border: "none", color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>←</button>
-        {(v.tags || []).length > 0 && (
-          <div style={{ position: "absolute", bottom: 12, right: 12, display: "flex", gap: 5, flexWrap: "wrap", justifyContent: "flex-end" }}>
-            {(v.tags || []).map((t) => (
-              <span key={t} style={{ background: "#00000075", color: "#fff", fontSize: 10, padding: "4px 10px", borderRadius: 20, fontWeight: 700, backdropFilter: "blur(6px)" }}>{t}</span>
-            ))}
+    <div style={{ position: "fixed", inset: 0, zIndex: 70, display: "flex", flexDirection: "column", background: "var(--bg)" }}>
+
+      {/* Scrollable content */}
+      <div style={{ flex: 1, overflowY: "auto" }}>
+
+        {/* Hero cover */}
+        <div style={{ position: "relative", width: "100%", height: 230, background: v.color + "20", overflow: "hidden", flexShrink: 0 }}>
+          {v.image_url
+            ? <img src={v.image_url} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 80, fontWeight: 900, color: v.color, opacity: 0.2 }}>{v.initial}</div>
+          }
+          {/* Back button */}
+          <button onClick={onClose} style={{ position: "absolute", top: 52, left: 16, width: 38, height: 38, borderRadius: "50%", background: "#00000070", border: "none", color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(8px)" }}>←</button>
+          {/* Like + Share overlaid top-right */}
+          <div style={{ position: "absolute", top: 52, right: 16, display: "flex", gap: 8 }}>
+            <button onClick={() => setLiked((l) => !l)} style={{ width: 38, height: 38, borderRadius: "50%", background: "#00000070", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(8px)" }}>
+              <HeartIcon filled={liked} size={18} color={liked ? "var(--pk)" : "#fff"} />
+            </button>
+            <button style={{ width: 38, height: 38, borderRadius: "50%", background: "#00000070", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(8px)" }}>
+              <ShareIcon size={18} color="#fff" />
+            </button>
           </div>
+          {/* Tags */}
+          {(v.tags || []).length > 0 && (
+            <div style={{ position: "absolute", bottom: 12, left: 12, display: "flex", gap: 5, flexWrap: "wrap" }}>
+              {(v.tags || []).map((t) => (
+                <span key={t} style={{ background: "#00000075", color: "#fff", fontSize: 10, padding: "4px 10px", borderRadius: 20, fontWeight: 700, backdropFilter: "blur(6px)" }}>{t}</span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Avatar + Name row */}
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 14, padding: "0 20px", marginTop: -40 }}>
+          <div style={{ width: 82, height: 82, borderRadius: "50%", border: "3px solid var(--bg)", overflow: "hidden", background: v.color + "30", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, fontWeight: 900, color: v.color, flexShrink: 0 }}>
+            {v.image_url ? <img src={v.image_url} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : v.initial}
+          </div>
+          <div style={{ flex: 1, paddingBottom: 6 }}>
+            <div style={{ fontSize: 17, fontWeight: 900, color: "var(--txt)", lineHeight: 1.2 }}>{v.name}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 4, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 12, color: "var(--mt)" }}>{v.hood}</span>
+              <span style={{ fontSize: 12, color: "var(--mt)" }}>·</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--txt)" }}>{followers}</span>
+              <span style={{ fontSize: 12, color: "var(--mt)" }}>seguidores</span>
+              {dist && (
+                <>
+                  <span style={{ fontSize: 12, color: "var(--mt)" }}>·</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--cy)" }}>{dist}</span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Follow + Agenda buttons */}
+        <div style={{ display: "flex", gap: 8, padding: "14px 20px 10px" }}>
+          <button onClick={toggleFollow} style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "0.5px solid", borderColor: isFollowing ? "var(--bd)" : "var(--p)", background: isFollowing ? "transparent" : "var(--p)", color: isFollowing ? "var(--txt)" : "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+            {isFollowing ? "✓ Seguindo" : "+ Seguir"}
+          </button>
+          <button onClick={() => setAgendaMsg(true)} style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "0.5px solid var(--bd)", background: "transparent", color: "var(--txt)", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+            <CalendarIcon size={15} /> Agenda
+          </button>
+        </div>
+
+        {agendaMsg && (
+          <>
+            <div onClick={() => setAgendaMsg(false)} style={{ position: "fixed", inset: 0, background: "#00000080", zIndex: 80 }} />
+            <div style={{ position: "fixed", left: 20, right: 20, top: "50%", transform: "translateY(-50%)", background: "var(--card)", borderRadius: 20, padding: 28, zIndex: 90, textAlign: "center" }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>📅</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: "var(--txt)", marginBottom: 8 }}>Agenda em breve</div>
+              <div style={{ fontSize: 13, color: "var(--mt)", marginBottom: 20 }}>Os eventos dos estabelecimentos vão aparecer aqui em breve!</div>
+              <button onClick={() => setAgendaMsg(false)} className="btn-primary">Entendido</button>
+            </div>
+          </>
         )}
-      </div>
 
-      {/* Avatar */}
-      <div style={{ padding: "0 20px", marginTop: -43 }}>
-        <div style={{ width: 86, height: 86, borderRadius: "50%", border: "3px solid var(--bg)", overflow: "hidden", background: v.color + "30", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900, color: v.color, flexShrink: 0 }}>
-          {v.image_url ? <img src={v.image_url} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : v.initial}
-        </div>
-      </div>
-
-      {/* Nome, bairro, distância */}
-      <div style={{ padding: "12px 20px 0" }}>
-        <div style={{ fontSize: 17, fontWeight: 900, color: "var(--txt)", marginBottom: 2 }}>{v.name} <span style={{ fontWeight: 400, color: "var(--mt)" }}>— {v.hood}</span></div>
-        {dist && <div style={{ fontSize: 12, color: "var(--cy)", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}><PinIcon size={12} color="var(--cy)" /> {dist} de você</div>}
-      </div>
-
-      {/* Stats */}
-      <div style={{ display: "flex", alignItems: "center", gap: 24, padding: "16px 20px 0" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 20, fontWeight: 900, color: "var(--txt)" }}>{venuePosts.length}</div>
-          <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>posts</div>
-        </div>
-        <div style={{ width: 1, height: 28, background: "var(--bd)" }} />
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 20, fontWeight: 900, color: "var(--txt)" }}>{followers}</div>
-          <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>seguidores</div>
-        </div>
-      </div>
-
-      {/* Ir pra lá */}
-      {v.address && (
-        <div style={{ padding: "14px 20px 0" }}>
-          <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.address)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", padding: "13px 0", borderRadius: 14, background: "linear-gradient(135deg, #9D4EDD, #7B2FBE)", color: "#fff", fontWeight: 700, fontSize: 15, textDecoration: "none" }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-            </svg>
-            Ir pra lá
-          </a>
-        </div>
-      )}
-
-      {/* Botões */}
-      <div style={{ display: "flex", gap: 8, padding: "10px 20px 8px" }}>
-        <button onClick={toggleFollow} style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "0.5px solid", borderColor: isFollowing ? "var(--bd)" : "var(--p)", background: isFollowing ? "transparent" : "var(--p)", color: isFollowing ? "var(--txt)" : "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
-          {isFollowing ? "✓ Seguindo" : "+ Seguir"}
-        </button>
-        <button onClick={() => setAgendaMsg(true)} style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "0.5px solid var(--bd)", background: "transparent", color: "var(--txt)", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-          <CalendarIcon size={15} /> Agenda
-        </button>
-        <button onClick={() => setLiked(l => !l)} style={{ width: 44, padding: "11px 0", borderRadius: 12, border: "0.5px solid var(--bd)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <HeartIcon filled={liked} size={18} color={liked ? "var(--pk)" : "var(--mt)"} />
-        </button>
-        <button style={{ width: 44, padding: "11px 0", borderRadius: 12, border: "0.5px solid var(--bd)", background: "transparent", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <ShareIcon size={18} color="var(--mt)" />
-        </button>
-      </div>
-
-      {agendaMsg && (
-        <>
-          <div onClick={() => setAgendaMsg(false)} style={{ position: "fixed", inset: 0, background: "#00000080", zIndex: 80 }} />
-          <div style={{ position: "fixed", left: 20, right: 20, top: "50%", transform: "translateY(-50%)", background: "var(--card)", borderRadius: 20, padding: 28, zIndex: 90, textAlign: "center" }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>📅</div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: "var(--txt)", marginBottom: 8 }}>Agenda em breve</div>
-            <div style={{ fontSize: 13, color: "var(--mt)", marginBottom: 20 }}>Os eventos dos estabelecimentos vão aparecer aqui em breve!</div>
-            <button onClick={() => setAgendaMsg(false)} className="btn-primary">Entendido</button>
-          </div>
-        </>
-      )}
-
-      {/* Tabs — Instagram style */}
-      <div style={{ display: "flex", borderTop: "0.5px solid var(--bd)", borderBottom: "0.5px solid var(--bd)" }}>
+        {/* Tabs — Instagram style */}
+        <div style={{ display: "flex", borderTop: "0.5px solid var(--bd)", borderBottom: "0.5px solid var(--bd)", marginTop: 4 }}>
         <button onClick={() => setActiveTab("grid")} style={{ flex: 1, padding: "14px 0", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", borderBottom: activeTab === "grid" ? "2px solid var(--txt)" : "2px solid transparent" }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={activeTab === "grid" ? "var(--txt)" : "var(--mt)"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
@@ -1060,6 +1082,26 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
           )}
         </div>
       )}
+
+      </div>{/* end scrollable */}
+
+      {/* Sticky bottom: Ir pra lá */}
+      {v.address && (
+        <div style={{ padding: "12px 20px 28px", background: "var(--bg)", borderTop: "0.5px solid var(--bd)", flexShrink: 0 }}>
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(v.address)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, width: "100%", padding: "16px 0", borderRadius: 18, background: "linear-gradient(90deg, #9D4EDD, #7B2FBE)", color: "#fff", fontWeight: 800, fontSize: 16, textDecoration: "none" }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+            </svg>
+            Ir pra lá
+          </a>
+        </div>
+      )}
+
     </div>
   );
 }
