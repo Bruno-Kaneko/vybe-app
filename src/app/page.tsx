@@ -27,8 +27,15 @@ export default function LoginPage() {
   useEffect(() => {
     const hash = window.location.hash;
     const search = window.location.search;
-    if (hash.includes("access_token") || search.includes("code=")) {
+    const params = new URLSearchParams(search);
+    if (hash.includes("access_token") || params.has("code")) {
       checkSession();
+    } else if (params.has("error")) {
+      // OAuth redirect returned with error
+      const desc = params.get("error_description") ?? "Provedor não configurado";
+      setScreen("login");
+      setError(decodeURIComponent(desc.replace(/\+/g, " ")));
+      window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
 
@@ -50,23 +57,31 @@ export default function LoginPage() {
   async function handleGoogleLogin() {
     setOauthLoading("google");
     setError("");
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: window.location.origin, skipBrowserRedirect: true },
     });
-    if (error) setError("Não foi possível entrar com Google. Tente novamente.");
     setOauthLoading(null);
+    if (error || !data?.url) {
+      setError("Login com Google não ativado. Vá ao Supabase Dashboard → Authentication → Providers → Google.");
+      return;
+    }
+    window.location.href = data.url;
   }
 
   async function handleAppleLogin() {
     setOauthLoading("apple");
     setError("");
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "apple",
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: window.location.origin, skipBrowserRedirect: true },
     });
-    if (error) setError("Não foi possível entrar com Apple. Tente novamente.");
     setOauthLoading(null);
+    if (error || !data?.url) {
+      setError("Login com Apple não ativado. Vá ao Supabase Dashboard → Authentication → Providers → Apple.");
+      return;
+    }
+    window.location.href = data.url;
   }
 
   async function handleForgotPassword() {

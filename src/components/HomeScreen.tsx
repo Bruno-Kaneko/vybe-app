@@ -437,8 +437,9 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress,
 
       {/* Stories */}
       {(() => {
+        const storySource = posts.length > 0 ? posts : DEMO_POSTS;
         const userStories: SelectedUser[] = [];
-        posts.forEach((p) => {
+        storySource.forEach((p) => {
           if (p.profiles && !userStories.find((u) => u.id === p.user_id)) {
             userStories.push({ id: p.user_id, nome: p.profiles.nome, avatar_url: p.profiles.avatar_url, status: p.profiles.status ?? "solteiro" });
           }
@@ -508,7 +509,7 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress,
                 <span style={{ fontSize: 11, color: "var(--mt)" }}>Posts reais aparecerão aqui quando alguém postar</span>
               </div>
             )}
-            {visiblePosts.map((p) => <RealPostCard key={p.id} post={p} onUserPress={isDemo ? () => {} : onUserPress} />)}
+            {visiblePosts.map((p) => <RealPostCard key={p.id} post={p} onUserPress={onUserPress} />)}
           </div>
         );
       })()}
@@ -842,12 +843,21 @@ function SearchTab({ venues, loading, userLocation, onVenuePress, onUserPress }:
                 </div>
               </div>
             )}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <div style={{ fontSize: 9, color: "var(--mt)", fontWeight: 900, letterSpacing: 1 }}>{filtered.length} LUGARES</div>
-              {activeFilters > 0 && <button onClick={clearFilters} style={{ background: "none", border: "none", color: "var(--p)", fontSize: 12, cursor: "pointer" }}>Limpar filtros</button>}
-            </div>
+            {(filtered.length > 0 || activeFilters > 0) && (
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div style={{ fontSize: 9, color: "var(--mt)", fontWeight: 900, letterSpacing: 1 }}>{filtered.length} LUGARES</div>
+                {activeFilters > 0 && <button onClick={clearFilters} style={{ background: "none", border: "none", color: "var(--p)", fontSize: 12, cursor: "pointer" }}>Limpar filtros</button>}
+              </div>
+            )}
             {filtered.map((v) => <VenueCard key={v.id} venue={v} userLocation={userLocation} onClick={() => onVenuePress(v)} />)}
-            {filtered.length === 0 && <div style={{ textAlign: "center", paddingTop: 40, color: "var(--mt)" }}><div style={{ display:"flex", justifyContent:"center", marginBottom: 10 }}><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="1.5"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.8" fill="var(--mt)"/><line x1="12" y1="12" x2="18.2" y2="5.8" strokeLinecap="round"/></svg></div><div style={{ fontWeight: 900 }}>Nenhum lugar encontrado</div></div>}
+            {filtered.length === 0 && userResults.length === 0 && (
+              <div style={{ textAlign: "center", paddingTop: 40, color: "var(--mt)" }}>
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="1.5"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.8" fill="var(--mt)"/><line x1="12" y1="12" x2="18.2" y2="5.8" strokeLinecap="round"/></svg>
+                </div>
+                <div style={{ fontWeight: 900 }}>Nenhum resultado encontrado</div>
+              </div>
+            )}
           </>
         )
       )}
@@ -951,7 +961,7 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
           </div>
           {/* Tags */}
           {(v.tags || []).length > 0 && (
-            <div style={{ position: "absolute", bottom: 12, left: 12, display: "flex", gap: 5, flexWrap: "wrap" }}>
+            <div style={{ position: "absolute", bottom: 56, right: 12, display: "flex", gap: 5, flexWrap: "wrap", justifyContent: "flex-end" }}>
               {(v.tags || []).map((t) => (
                 <span key={t} style={{ background: "#00000075", color: "#fff", fontSize: 10, padding: "4px 10px", borderRadius: 20, fontWeight: 700, backdropFilter: "blur(6px)" }}>{t}</span>
               ))}
