@@ -1514,6 +1514,10 @@ function PerfilTab({ profile, setProfile, onSignOut }: { profile: Profile | null
   const [postCount, setPostCount] = useState(0);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editNome, setEditNome] = useState("");
+  const [editTipos, setEditTipos] = useState<string[]>([]);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -1548,12 +1552,30 @@ function PerfilTab({ profile, setProfile, onSignOut }: { profile: Profile | null
 
   async function handleSignOut() { await supabase.auth.signOut(); onSignOut(); }
 
+  function openEdit() {
+    setEditNome(profile?.nome ?? "");
+    setEditTipos(profile?.tipos_favoritos ?? []);
+    setShowEdit(true);
+  }
+
+  async function saveEdit() {
+    if (!profile || !editNome.trim()) return;
+    setSavingEdit(true);
+    await supabase.from("profiles").update({ nome: editNome.trim(), tipos_favoritos: editTipos }).eq("id", profile.id);
+    setProfile({ ...profile, nome: editNome.trim(), tipos_favoritos: editTipos });
+    setSavingEdit(false);
+    setShowEdit(false);
+  }
+
   const nome = profile?.nome ?? "Carregando...";
   const bairro = profile?.bairro ?? "";
   const tipos = profile?.tipos_favoritos ?? [];
 
   return (
     <div style={{ padding: "16px 20px" }}>
+      {/* Nome acima da foto */}
+      <div style={{ fontSize: 16, fontWeight: 900, color: "var(--txt)", marginBottom: 14 }}>{nome}</div>
+
       {/* Avatar + Stats — estilo Instagram */}
       <div style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 16 }}>
         <div style={{ position: "relative", flexShrink: 0 }}>
@@ -1585,14 +1607,12 @@ function PerfilTab({ profile, setProfile, onSignOut }: { profile: Profile | null
         </div>
       </div>
 
-      {/* Nome, status, bairro */}
+      {/* Status */}
       <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 16, fontWeight: 900, color: "var(--txt)", marginBottom: 8 }}>{nome}</div>
-        <div onClick={handleStatusChange} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 20, padding: "5px 12px", cursor: "pointer", marginBottom: bairro ? 8 : 0 }}>
+        <div onClick={handleStatusChange} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 20, padding: "5px 12px", cursor: "pointer" }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: STATUS_OPTIONS[statusIdx].color }} />
           <span style={{ fontSize: 12, fontWeight: 700, color: STATUS_OPTIONS[statusIdx].color }}>{STATUS_OPTIONS[statusIdx].label}</span>
         </div>
-        {bairro && <div style={{ fontSize: 13, color: "var(--mt)" }}>{bairro}</div>}
       </div>
 
       {/* Tipos favoritos */}
@@ -1603,9 +1623,43 @@ function PerfilTab({ profile, setProfile, onSignOut }: { profile: Profile | null
       )}
 
       {/* Editar perfil */}
-      <button style={{ width: "100%", padding: "10px 0", borderRadius: 10, border: "0.5px solid var(--bd)", background: "transparent", color: "var(--txt)", fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 20 }}>
+      <button onClick={openEdit} style={{ width: "100%", padding: "10px 0", borderRadius: 10, border: "0.5px solid var(--bd)", background: "transparent", color: "var(--txt)", fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 20 }}>
         Editar perfil
       </button>
+
+      {/* Modal editar perfil */}
+      {showEdit && (
+        <>
+          <div onClick={() => setShowEdit(false)} style={{ position: "fixed", inset: 0, background: "#00000088", zIndex: 200 }} />
+          <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, background: "var(--surf)", borderRadius: "24px 24px 0 0", border: "0.5px solid var(--bd)", zIndex: 210, padding: "20px 20px 48px", maxHeight: "85vh", overflowY: "auto" }}>
+            <div style={{ width: 36, height: 3, background: "var(--bd)", borderRadius: 2, margin: "0 auto 20px" }} />
+            <div style={{ fontSize: 17, fontWeight: 900, color: "var(--txt)", marginBottom: 20 }}>Editar perfil</div>
+
+            <div style={{ fontSize: 11, fontWeight: 900, color: "var(--mt)", letterSpacing: 0.5, marginBottom: 8 }}>NOME</div>
+            <input
+              className="inp"
+              value={editNome}
+              onChange={(e) => setEditNome(e.target.value)}
+              placeholder="Seu nome"
+              style={{ marginBottom: 20 }}
+            />
+
+            <div style={{ fontSize: 11, fontWeight: 900, color: "var(--mt)", letterSpacing: 0.5, marginBottom: 10 }}>ESTILOS FAVORITOS</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
+              {["Balada", "Bar", "Pagode", "Sertanejo", "Eletrônica", "Boteco", "Show", "Rock", "Jazz", "Techno", "Funk", "MPB"].map((t) => (
+                <span key={t} onClick={() => setEditTipos((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t])}
+                  style={{ padding: "8px 14px", borderRadius: 20, fontSize: 13, cursor: "pointer", fontWeight: editTipos.includes(t) ? 700 : 400, background: editTipos.includes(t) ? "var(--pd)" : "var(--card)", color: editTipos.includes(t) ? "var(--p)" : "var(--mt)", border: `0.5px solid ${editTipos.includes(t) ? "#9D4EDD" : "var(--bd)"}` }}>
+                  {t}
+                </span>
+              ))}
+            </div>
+
+            <button onClick={saveEdit} disabled={savingEdit || !editNome.trim()} className="btn-primary" style={{ opacity: savingEdit ? 0.7 : 1 }}>
+              {savingEdit ? "Salvando..." : "Salvar"}
+            </button>
+          </div>
+        </>
+      )}
 
       {/* Galeria (premium) */}
       <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, padding: 20, marginBottom: 16, textAlign: "center" }}>
