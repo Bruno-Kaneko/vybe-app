@@ -949,8 +949,24 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
   const [agendaMsg, setAgendaMsg] = useState(false);
   const [activeTab, setActiveTab] = useState<"grid" | "info">("grid");
   const [liked, setLiked] = useState(false);
+  const [liveOcc, setLiveOcc] = useState(v.occ);
+  const [showReport, setShowReport] = useState(false);
+  const [reportOcc, setReportOcc] = useState<number | null>(null);
+  const [reportFila, setReportFila] = useState<string | null>(null);
+  const [reportDone, setReportDone] = useState(false);
+  const [submittingReport, setSubmittingReport] = useState(false);
 
   const dist = userLocation && v.lat && v.lng ? formatDist(haversine(userLocation.lat, userLocation.lng, v.lat, v.lng)) : null;
+
+  async function submitReport() {
+    if (reportOcc === null) return;
+    setSubmittingReport(true);
+    await supabase.from("venues").update({ occ: reportOcc }).eq("id", v.id);
+    setLiveOcc(reportOcc);
+    setSubmittingReport(false);
+    setReportDone(true);
+    setTimeout(() => { setShowReport(false); setReportDone(false); setReportOcc(null); setReportFila(null); }, 2000);
+  }
 
   useEffect(() => {
     supabase.from("venue_follows").select("*", { count: "exact", head: true }).eq("venue_id", v.id)
@@ -1093,16 +1109,24 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
       {/* Tab: Informações */}
       {activeTab === "info" && (
         <div style={{ padding: "20px 20px 48px", display: "flex", flexDirection: "column", gap: 12 }}>
-          {/* Lotação */}
+          {/* Lotação ao vivo */}
+          {(() => { const { color: liveColor, label: liveLabel } = occInfo(liveOcc); return (
           <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 16, padding: "16px 18px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
               <div style={{ fontSize: 11, fontWeight: 900, color: "var(--mt)", letterSpacing: 0.5 }}>LOTAÇÃO AGORA</div>
-              <span style={{ fontSize: 12, color: occColor, fontWeight: 900 }}>{occLabel} · {v.occ}%</span>
+              <span style={{ fontSize: 12, color: liveColor, fontWeight: 900 }}>{liveLabel} · {liveOcc}%</span>
             </div>
             <div style={{ background: "#1A1A35", borderRadius: 6, height: 8 }}>
-              <div style={{ width: `${v.occ}%`, background: occColor, borderRadius: 6, height: 8 }} />
+              <div style={{ width: `${liveOcc}%`, background: liveColor, borderRadius: 6, height: 8, transition: "width 0.4s" }} />
             </div>
           </div>
+          ); })()}
+
+          {/* Botão Reportar ao vivo */}
+          <button onClick={() => setShowReport(true)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "13px 0", borderRadius: 14, border: "0.5px solid #9D4EDD55", background: "var(--pd)", color: "var(--p)", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 8v4l3 3"/></svg>
+            Reportar situação ao vivo
+          </button>
 
           {/* Grid de info */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -1136,6 +1160,58 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
       )}
 
       </div>{/* end scrollable */}
+
+      {/* Bottom sheet: Reportar ao vivo */}
+      {showReport && (
+        <>
+          <div onClick={() => setShowReport(false)} style={{ position: "fixed", inset: 0, background: "#00000080", zIndex: 90 }} />
+          <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, background: "var(--surf)", borderRadius: "24px 24px 0 0", border: "0.5px solid var(--bd)", zIndex: 100, padding: "20px 20px 48px" }}>
+            <div style={{ width: 36, height: 3, background: "var(--bd)", borderRadius: 2, margin: "0 auto 20px" }} />
+            {reportDone ? (
+              <div style={{ textAlign: "center", padding: "20px 0 10px" }}>
+                <div style={{ fontSize: 40, marginBottom: 10 }}>✅</div>
+                <div style={{ fontSize: 17, fontWeight: 900, color: "var(--txt)", marginBottom: 6 }}>Obrigado pelo report!</div>
+                <div style={{ fontSize: 13, color: "var(--mt)" }}>A situação foi atualizada.</div>
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize: 17, fontWeight: 900, color: "var(--txt)", marginBottom: 4 }}>Como está o lugar agora?</div>
+                <div style={{ fontSize: 12, color: "var(--mt)", marginBottom: 20 }}>Seu report ajuda todo mundo a decidir pra onde ir.</div>
+
+                <div style={{ fontSize: 11, fontWeight: 900, color: "var(--mt)", letterSpacing: 0.5, marginBottom: 10 }}>LOTAÇÃO</div>
+                <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+                  {[
+                    { label: "Tranquilo", occ: 25, color: "#22C55E" },
+                    { label: "Médio", occ: 55, color: "#F59E0B" },
+                    { label: "Cheio", occ: 80, color: "#F59E0B" },
+                    { label: "Lotado", occ: 95, color: "#EF4444" },
+                  ].map((op) => (
+                    <button key={op.label} onClick={() => setReportOcc(op.occ)}
+                      style={{ flex: 1, padding: "10px 0", borderRadius: 12, border: `1.5px solid ${reportOcc === op.occ ? op.color : "var(--bd)"}`, background: reportOcc === op.occ ? op.color + "20" : "var(--card)", color: reportOcc === op.occ ? op.color : "var(--mt)", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
+                      {op.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ fontSize: 11, fontWeight: 900, color: "var(--mt)", letterSpacing: 0.5, marginBottom: 10 }}>FILA NA ENTRADA</div>
+                <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+                  {["Sem fila", "Pequena", "Grande"].map((f) => (
+                    <button key={f} onClick={() => setReportFila(f)}
+                      style={{ flex: 1, padding: "10px 0", borderRadius: 12, border: `1.5px solid ${reportFila === f ? "var(--p)" : "var(--bd)"}`, background: reportFila === f ? "var(--pd)" : "var(--card)", color: reportFila === f ? "var(--p)" : "var(--mt)", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
+                      {f}
+                    </button>
+                  ))}
+                </div>
+
+                <button onClick={submitReport} disabled={reportOcc === null || submittingReport}
+                  style={{ width: "100%", padding: "14px 0", borderRadius: 14, background: reportOcc !== null ? "var(--p)" : "#1A1A35", color: reportOcc !== null ? "#fff" : "var(--mt)", fontWeight: 800, fontSize: 15, border: "none", cursor: reportOcc !== null ? "pointer" : "default", opacity: submittingReport ? 0.7 : 1 }}>
+                  {submittingReport ? "Enviando..." : "Enviar report"}
+                </button>
+              </>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Sticky bottom: Ir pra lá */}
       {v.address && (
