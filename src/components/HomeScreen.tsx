@@ -311,7 +311,7 @@ export default function HomeScreen({ onSignOut }: { onSignOut: () => void }) {
 
   return (
     <div
-      style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column" }}
+      style={{ height: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", overflow: "hidden" }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
