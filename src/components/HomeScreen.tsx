@@ -533,15 +533,12 @@ function RealPostCard({ post, onUserPress }: { post: RealPost; onUserPress: (u: 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <span onClick={handleUserPress} style={{ fontSize: 14, fontWeight: 800, color: "var(--txt)", cursor: "pointer" }}>{nome}</span>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: badge.color, flexShrink: 0 }} />
+            <div style={{ width: 14, height: 3, borderRadius: 2, background: badge.color, flexShrink: 0 }} />
           </div>
           {venueName && (
             <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
               <PinIcon size={10} color="var(--mt)" />
               <span style={{ fontSize: 11, color: "var(--mt)" }}>{venueName}</span>
-              {venueTag && (
-                <span style={{ fontSize: 9, fontWeight: 800, color: "var(--pk)", background: "#FF006E18", borderRadius: 6, padding: "1px 6px", letterSpacing: 0.2 }}>{venueTag}</span>
-              )}
             </div>
           )}
         </div>
