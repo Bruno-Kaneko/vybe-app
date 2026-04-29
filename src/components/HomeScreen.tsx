@@ -1617,15 +1617,14 @@ function UserProfileModal({ user, onClose }: { user: SelectedUser; onClose: () =
   return (
     <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 70, overflowY: "auto" }}>
 
-      {/* Top bar — estilo Instagram */}
-      <div style={{ display: "flex", alignItems: "center", padding: "52px 16px 12px", gap: 12 }}>
+      {/* Top bar */}
+      <div style={{ display: "flex", alignItems: "center", padding: "52px 16px 12px" }}>
         <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--card)", border: "0.5px solid var(--bd)", color: "var(--txt)", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>←</button>
-        <span style={{ fontSize: 16, fontWeight: 900, color: "var(--txt)", flex: 1 }}>{user.nome}</span>
       </div>
 
       {/* Avatar + Stats */}
       <div style={{ display: "flex", alignItems: "center", gap: 24, padding: "8px 20px 16px" }}>
-        <div style={{ width: 86, height: 86, borderRadius: "50%", border: "2px solid var(--bd)", overflow: "hidden", background: "var(--p)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900, color: "#fff", flexShrink: 0 }}>
+        <div style={{ width: 86, height: 86, borderRadius: "50%", border: `3px solid ${badge.color}`, overflow: "hidden", background: "var(--p)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900, color: "#fff", flexShrink: 0 }}>
           {user.avatar_url
             ? <img src={user.avatar_url} alt={user.nome} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             : user.nome.charAt(0).toUpperCase()}
@@ -1644,13 +1643,9 @@ function UserProfileModal({ user, onClose }: { user: SelectedUser; onClose: () =
         </div>
       </div>
 
-      {/* Nome, status, bairro, tags */}
+      {/* Nome, bairro, tags */}
       <div style={{ padding: "0 20px 4px" }}>
         <div style={{ fontSize: 15, fontWeight: 900, color: "var(--txt)", marginBottom: 8 }}>{user.nome}</div>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: badge.color + "20", borderRadius: 20, padding: "4px 12px", marginBottom: 8 }}>
-          <span>{badge.dot}</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: badge.color }}>{badge.label}</span>
-        </div>
         {fullProfile?.bairro && (
           <div style={{ fontSize: 13, color: "var(--mt)", marginBottom: 8, display: "flex", alignItems: "center", gap: 4 }}>
             <PinIcon size={12} color="var(--mt)" /> {fullProfile.bairro}
