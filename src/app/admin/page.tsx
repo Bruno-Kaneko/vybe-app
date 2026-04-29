@@ -126,7 +126,7 @@ export default function AdminPage() {
 
   if (!authorized) return (
     <div style={{ minHeight: "100vh", background: "#08080F", display: "flex", alignItems: "center", justifyContent: "center", color: "#F0F0FA", flexDirection: "column", gap: 12 }}>
-      <div style={{ fontSize: 32 }}>🔒</div>
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6060A0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       <div style={{ fontWeight: 900, fontSize: 18 }}>Acesso negado</div>
       <div style={{ color: "#6060A0", fontSize: 14 }}>Somente o admin pode acessar esta página.</div>
     </div>
@@ -155,7 +155,7 @@ export default function AdminPage() {
         {([
           { id: "pendentes", label: `Validar (${pendentes.length})` },
           { id: "aprovados", label: `Aprovados (${aprovados.length})` },
-          { id: "adicionar", label: editingId ? "✏️ Editando" : "➕ Adicionar" },
+          { id: "adicionar", label: editingId ? "Editando" : "Adicionar" },
         ] as { id: Tab; label: string }[]).map((t) => (
           <button key={t.id} onClick={() => { setTab(t.id); if (t.id !== "adicionar") { setEditingId(null); setForm(EMPTY_FORM); setMsg(""); } }}
             style={{ padding: "9px 16px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 13, fontWeight: 700, background: tab === t.id ? "#9D4EDD" : "#0E0E1C", color: tab === t.id ? "#fff" : "#6060A0", transition: "all 0.15s" }}>
@@ -169,7 +169,6 @@ export default function AdminPage() {
         <div>
           {pendentes.length === 0 ? (
             <div style={{ textAlign: "center", color: "#6060A0", paddingTop: 60 }}>
-              <div style={{ fontSize: 36, marginBottom: 10 }}>✅</div>
               <div style={{ fontWeight: 900 }}>Tudo validado!</div>
               <div style={{ fontSize: 13, marginTop: 4 }}>Nenhum lugar pendente.</div>
             </div>
@@ -203,15 +202,15 @@ export default function AdminPage() {
                   ))}
                 </div>
 
-                {v.address && <div style={{ fontSize: 12, color: "#6060A0", marginBottom: 12 }}>📍 {v.address}</div>}
-                {v.transit && <div style={{ fontSize: 12, color: "#6060A0", marginBottom: 14 }}>🚇 {v.transit}</div>}
+                {v.address && <div style={{ fontSize: 12, color: "#6060A0", marginBottom: 12 }}>{v.address}</div>}
+                {v.transit && <div style={{ fontSize: 12, color: "#6060A0", marginBottom: 14 }}>{v.transit}</div>}
 
                 <div style={{ display: "flex", gap: 8 }}>
                   <button onClick={() => handleApprove(v.id)} style={{ flex: 1, background: "#22C55E20", border: "0.5px solid #22C55E50", color: "#22C55E", borderRadius: 10, padding: 11, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                     ✓ Aprovar
                   </button>
                   <button onClick={() => handleEdit(v)} style={{ background: "#9D4EDD20", border: "0.5px solid #9D4EDD50", color: "#9D4EDD", borderRadius: 10, padding: "11px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-                    ✏️ Editar
+                    Editar
                   </button>
                   <button onClick={() => handleReject(v.id)} style={{ background: "#EF444420", border: "0.5px solid #EF444450", color: "#EF4444", borderRadius: 10, padding: "11px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                     ✗
@@ -228,7 +227,6 @@ export default function AdminPage() {
         <div>
           {aprovados.length === 0 ? (
             <div style={{ textAlign: "center", color: "#6060A0", paddingTop: 60 }}>
-              <div style={{ fontSize: 36, marginBottom: 10 }}>🏙️</div>
               <div>Nenhum lugar aprovado ainda.</div>
             </div>
           ) : (
@@ -253,7 +251,7 @@ export default function AdminPage() {
       {tab === "adicionar" && (
         <div style={{ background: "#0E0E1C", border: "0.5px solid #1E1E38", borderRadius: 18, padding: 20 }}>
           <div style={{ fontSize: 15, fontWeight: 900, marginBottom: 18 }}>
-            {editingId ? "✏️ Editar lugar" : "➕ Novo lugar"}
+            {editingId ? "Editar lugar" : "Novo lugar"}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <div>
@@ -273,15 +271,15 @@ export default function AdminPage() {
               <input style={inputStyle} value={form.address} onChange={(e) => set("address", e.target.value)} placeholder="Ex: Av. Brig. Luis Antonio, 82" />
             </div>
             <div>
-              <label style={labelStyle}>LATITUDE 📍</label>
+              <label style={labelStyle}>LATITUDE</label>
               <input style={inputStyle} value={form.lat} onChange={(e) => set("lat", e.target.value)} placeholder="Ex: -23.5629" />
             </div>
             <div>
-              <label style={labelStyle}>LONGITUDE 📍</label>
+              <label style={labelStyle}>LONGITUDE</label>
               <input style={inputStyle} value={form.lng} onChange={(e) => set("lng", e.target.value)} placeholder="Ex: -46.6544" />
             </div>
             <div style={{ gridColumn: "1 / -1", background: "#9D4EDD12", border: "0.5px solid #9D4EDD30", borderRadius: 10, padding: "10px 14px" }}>
-              <div style={{ fontSize: 11, color: "#9D4EDD", fontWeight: 700, marginBottom: 4 }}>📌 COMO OBTER AS COORDENADAS</div>
+              <div style={{ fontSize: 11, color: "#9D4EDD", fontWeight: 700, marginBottom: 4 }}>COMO OBTER AS COORDENADAS</div>
               <div style={{ fontSize: 12, color: "#6060A0", lineHeight: 1.6 }}>
                 Abra o Google Maps → clique com o botão direito no local → clique nas coordenadas para copiar.<br/>
                 Ex: <span style={{ color: "#F0F0FA" }}>-23.5629, -46.6544</span> → Latitude: -23.5629 · Longitude: -46.6544

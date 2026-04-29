@@ -64,10 +64,10 @@ type Message = {
 };
 
 const STATUS_OPTIONS = [
-  { label: "Solteiro", color: "#22C55E", dot: "🟢", key: "solteiro" },
-  { label: "Namorando", color: "#EF4444", dot: "🔴", key: "namorando" },
-  { label: "Ficando / Enrolado", color: "#F59E0B", dot: "🟡", key: "ficando" },
-  { label: "Só curtindo", color: "#00D9FF", dot: "😎", key: "curtindo" },
+  { label: "Solteiro", color: "#22C55E", key: "solteiro" },
+  { label: "Namorando", color: "#EF4444", key: "namorando" },
+  { label: "Ficando / Enrolado", color: "#F59E0B", key: "ficando" },
+  { label: "Só curtindo", color: "#00D9FF", key: "curtindo" },
 ];
 
 /* ── HELPERS ── */
@@ -699,7 +699,7 @@ function CameraModal({ venues, profile, onClose, onPosted }: { venues: Venue[]; 
         )}
         {geoStatus === "denied" && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, paddingTop: 80, textAlign: "center", padding: "80px 12px 0" }}>
-            <div style={{ fontSize: 56 }}>📍</div>
+            <PinIcon size={52} color="var(--mt)" />
             <div style={{ fontSize: 18, fontWeight: 900, color: "var(--txt)" }}>Localização necessária</div>
             <div style={{ fontSize: 14, color: "var(--mt)", lineHeight: 1.7 }}>
               Precisamos confirmar que você está fisicamente no rolê antes de publicar.<br/>Ative a localização nas configurações do seu celular e tente novamente.
@@ -709,7 +709,7 @@ function CameraModal({ venues, profile, onClose, onPosted }: { venues: Venue[]; 
         )}
         {geoStatus === "far" && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, paddingTop: 80, textAlign: "center", padding: "80px 12px 0" }}>
-            <div style={{ fontSize: 56 }}>🗺️</div>
+            <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
             <div style={{ fontSize: 18, fontWeight: 900, color: "var(--txt)" }}>Você não está num rolê</div>
             <div style={{ fontSize: 14, color: "var(--mt)", lineHeight: 1.7 }}>
               No Vybe, só é possível postar quando você está fisicamente em um bar ou evento cadastrado.<br/>Vá curtir a noite e poste de lá!
@@ -874,7 +874,7 @@ function SearchTab({ venues, loading, userLocation, onVenuePress, onUserPress }:
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 14, fontWeight: 800, color: "var(--txt)" }}>{u.nome}</div>
                           <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3 }}>
-                            <div style={{ width: 7, height: 7, borderRadius: "50%", background: badge.color }} />
+                            <div style={{ width: 14, height: 3, borderRadius: 2, background: badge.color }} />
                             <span style={{ fontSize: 11, color: "var(--mt)" }}>{badge.label}{u.bairro ? ` · ${u.bairro}` : ""}</span>
                           </div>
                         </div>
@@ -1063,7 +1063,7 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
           <>
             <div onClick={() => setAgendaMsg(false)} style={{ position: "fixed", inset: 0, background: "#00000080", zIndex: 80 }} />
             <div style={{ position: "fixed", left: 20, right: 20, top: "50%", transform: "translateY(-50%)", background: "var(--card)", borderRadius: 20, padding: 28, zIndex: 90, textAlign: "center" }}>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>📅</div>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               <div style={{ fontSize: 18, fontWeight: 900, color: "var(--txt)", marginBottom: 8 }}>Agenda em breve</div>
               <div style={{ fontSize: 13, color: "var(--mt)", marginBottom: 20 }}>Os eventos dos estabelecimentos vão aparecer aqui em breve!</div>
               <button onClick={() => setAgendaMsg(false)} className="btn-primary">Entendido</button>
@@ -1332,7 +1332,7 @@ function ChatTab({ myId }: { myId: string | null }) {
         </div>
       ) : conversations.length === 0 ? (
         <div style={{ textAlign: "center", paddingTop: 60 }}>
-          <div style={{ fontSize: 40, marginBottom: 14 }}>💬</div>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 14 }}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           <div style={{ fontSize: 16, fontWeight: 900, color: "var(--txt)", marginBottom: 8 }}>Nenhuma mensagem</div>
           <div style={{ fontSize: 13, color: "var(--mt)" }}>Toque em "Mensagem" no perfil de alguém para começar</div>
         </div>
@@ -1554,56 +1554,58 @@ function PerfilTab({ profile, setProfile, onSignOut }: { profile: Profile | null
 
   return (
     <div style={{ padding: "16px 20px" }}>
-      {/* Avatar com upload */}
-      <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <div style={{ position: "relative", width: 90, height: 90, margin: "0 auto 14px" }}>
-          <div style={{ width: 90, height: 90, borderRadius: "50%", background: "var(--p)", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34, fontWeight: 900, color: "#fff" }}>
+      {/* Avatar + Stats — estilo Instagram */}
+      <div style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 16 }}>
+        <div style={{ position: "relative", flexShrink: 0 }}>
+          <div style={{ width: 86, height: 86, borderRadius: "50%", border: `3px solid ${STATUS_OPTIONS[statusIdx].color}`, overflow: "hidden", background: "var(--p)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900, color: "#fff" }}>
             {profile?.avatar_url
               ? <img src={profile.avatar_url} alt={nome} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               : nome.charAt(0).toUpperCase()
             }
           </div>
-          <label style={{ position: "absolute", bottom: 0, right: 0, width: 30, height: 30, borderRadius: "50%", background: "var(--p)", border: "2px solid var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+          <label style={{ position: "absolute", bottom: 0, right: 0, width: 28, height: 28, borderRadius: "50%", background: "var(--p)", border: "2px solid var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
             <input type="file" accept="image/*" onChange={handleAvatarUpload} style={{ display: "none" }} />
             {uploadingAvatar
               ? <div style={{ width: 12, height: 12, borderRadius: "50%", border: "2px solid #fff", borderTopColor: "transparent", animation: "spin 0.8s linear infinite" }} />
-              : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
+              : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
             }
           </label>
         </div>
+        <div style={{ flex: 1, display: "flex", justifyContent: "space-around" }}>
+          {[
+            { v: String(postCount), l: "posts" },
+            { v: String(followerCount), l: "seguidores" },
+            { v: String(followingCount), l: "seguindo" },
+          ].map((s) => (
+            <div key={s.l} style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: "var(--txt)" }}>{s.v}</div>
+              <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>{s.l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
 
-        <div style={{ fontSize: 22, fontWeight: 900, color: "var(--txt)" }}>{nome}</div>
-        {bairro && <div style={{ fontSize: 13, color: "var(--mt)", marginTop: 4 }}>{bairro}</div>}
-        <div onClick={handleStatusChange} style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 20, padding: "6px 14px", cursor: "pointer" }}>
-          <span>{STATUS_OPTIONS[statusIdx].dot}</span>
+      {/* Nome, status, bairro */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 16, fontWeight: 900, color: "var(--txt)", marginBottom: 8 }}>{nome}</div>
+        <div onClick={handleStatusChange} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 20, padding: "5px 12px", cursor: "pointer", marginBottom: bairro ? 8 : 0 }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: STATUS_OPTIONS[statusIdx].color }} />
           <span style={{ fontSize: 12, fontWeight: 700, color: STATUS_OPTIONS[statusIdx].color }}>{STATUS_OPTIONS[statusIdx].label}</span>
         </div>
+        {bairro && <div style={{ fontSize: 13, color: "var(--mt)" }}>{bairro}</div>}
       </div>
 
       {/* Tipos favoritos */}
       {tipos.length > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 900, color: "var(--mt)", letterSpacing: 0.5, marginBottom: 10 }}>ESTILOS FAVORITOS</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {tipos.map((t) => <span key={t} style={{ background: "var(--pd)", color: "var(--p)", fontSize: 12, padding: "5px 12px", borderRadius: 20, border: "0.5px solid #9D4EDD44", fontWeight: 700 }}>{t}</span>)}
-          </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 16 }}>
+          {tipos.map((t) => <span key={t} style={{ background: "var(--pd)", color: "var(--p)", fontSize: 12, padding: "4px 12px", borderRadius: 20, border: "0.5px solid #9D4EDD44", fontWeight: 700 }}>{t}</span>)}
         </div>
       )}
 
-      {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
-        {[
-          { l: "Rolês visitados", v: "0" },
-          { l: "Posts ativos", v: String(postCount) },
-          { l: "Seguidores", v: String(followerCount) },
-          { l: "Seguindo", v: String(followingCount) },
-        ].map((s) => (
-          <div key={s.l} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 14, padding: 14, textAlign: "center" }}>
-            <div style={{ fontSize: 26, fontWeight: 900, color: "var(--txt)" }}>{s.v}</div>
-            <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 4 }}>{s.l}</div>
-          </div>
-        ))}
-      </div>
+      {/* Editar perfil */}
+      <button style={{ width: "100%", padding: "10px 0", borderRadius: 10, border: "0.5px solid var(--bd)", background: "transparent", color: "var(--txt)", fontWeight: 700, fontSize: 14, cursor: "pointer", marginBottom: 20 }}>
+        Editar perfil
+      </button>
 
       {/* Galeria (premium) */}
       <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, padding: 20, marginBottom: 16, textAlign: "center" }}>
@@ -1616,7 +1618,6 @@ function PerfilTab({ profile, setProfile, onSignOut }: { profile: Profile | null
       {/* Menu */}
       <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, overflow: "hidden" }}>
         {[
-          { l: "Editar perfil", icon: <EditIcon size={16} color="var(--mt)" /> },
           { l: "Privacidade", icon: <LockIcon size={16} color="var(--mt)" /> },
           { l: "Notificações", icon: <BellIcon size={16} color="var(--mt)" /> },
           { l: "Suporte", icon: <CommentIcon size={16} color="var(--mt)" /> },

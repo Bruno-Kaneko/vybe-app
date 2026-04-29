@@ -185,7 +185,7 @@ export default function LoginPage() {
             </div>
             {forgotSent ? (
               <div style={{ textAlign: "center", padding: "12px 0" }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>📬</div>
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                 <div style={{ fontSize: 15, fontWeight: 900, color: "#22C55E", marginBottom: 6 }}>E-mail enviado!</div>
                 <div style={{ fontSize: 13, color: "var(--mt)" }}>Verifique sua caixa de entrada (e o spam).</div>
               </div>
