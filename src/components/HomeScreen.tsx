@@ -1616,45 +1616,48 @@ function UserProfileModal({ user, onClose }: { user: SelectedUser; onClose: () =
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 70, overflowY: "auto" }}>
-      <div style={{ position: "relative", width: "100%", height: 180, background: "linear-gradient(135deg, #9D4EDD33, #00D9FF22)", overflow: "hidden" }}>
-        <button onClick={onClose} style={{ position: "absolute", top: 52, left: 16, width: 38, height: 38, borderRadius: "50%", background: "#00000070", border: "none", color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>←</button>
+
+      {/* Top bar — estilo Instagram */}
+      <div style={{ display: "flex", alignItems: "center", padding: "52px 16px 12px", gap: 12 }}>
+        <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--card)", border: "0.5px solid var(--bd)", color: "var(--txt)", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>←</button>
+        <span style={{ fontSize: 16, fontWeight: 900, color: "var(--txt)", flex: 1 }}>{user.nome}</span>
       </div>
 
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 20, padding: "0 20px", marginTop: -44 }}>
-        <div style={{ width: 86, height: 86, borderRadius: "50%", border: "3px solid var(--bg)", overflow: "hidden", background: "var(--p)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900, color: "#fff", flexShrink: 0 }}>
+      {/* Avatar + Stats */}
+      <div style={{ display: "flex", alignItems: "center", gap: 24, padding: "8px 20px 16px" }}>
+        <div style={{ width: 86, height: 86, borderRadius: "50%", border: "2px solid var(--bd)", overflow: "hidden", background: "var(--p)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900, color: "#fff", flexShrink: 0 }}>
           {user.avatar_url
             ? <img src={user.avatar_url} alt={user.nome} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             : user.nome.charAt(0).toUpperCase()}
         </div>
-        <div style={{ flex: 1, display: "flex", paddingBottom: 6 }}>
-          <div style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: "var(--txt)" }}>{userPosts.length}</div>
-            <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>posts</div>
-          </div>
-          <div style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: "var(--txt)" }}>{followerCount}</div>
-            <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>seguidores</div>
-          </div>
-          <div style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: "var(--txt)" }}>{followingCount}</div>
-            <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>seguindo</div>
-          </div>
+        <div style={{ flex: 1, display: "flex", justifyContent: "space-around" }}>
+          {[
+            { v: userPosts.length, l: "posts" },
+            { v: followerCount, l: "seguidores" },
+            { v: followingCount, l: "seguindo" },
+          ].map((s) => (
+            <div key={s.l} style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 18, fontWeight: 900, color: "var(--txt)" }}>{s.v}</div>
+              <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>{s.l}</div>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div style={{ padding: "16px 20px 0" }}>
-        <div style={{ fontSize: 17, fontWeight: 900, color: "var(--txt)", marginBottom: 6 }}>{user.nome}</div>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: badge.color + "20", borderRadius: 20, padding: "4px 12px" }}>
+      {/* Nome, status, bairro, tags */}
+      <div style={{ padding: "0 20px 4px" }}>
+        <div style={{ fontSize: 15, fontWeight: 900, color: "var(--txt)", marginBottom: 8 }}>{user.nome}</div>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: badge.color + "20", borderRadius: 20, padding: "4px 12px", marginBottom: 8 }}>
           <span>{badge.dot}</span>
           <span style={{ fontSize: 12, fontWeight: 700, color: badge.color }}>{badge.label}</span>
         </div>
         {fullProfile?.bairro && (
-          <div style={{ fontSize: 13, color: "var(--mt)", marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}>
+          <div style={{ fontSize: 13, color: "var(--mt)", marginBottom: 8, display: "flex", alignItems: "center", gap: 4 }}>
             <PinIcon size={12} color="var(--mt)" /> {fullProfile.bairro}
           </div>
         )}
         {fullProfile?.tipos_favoritos && fullProfile.tipos_favoritos.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 4 }}>
             {fullProfile.tipos_favoritos.map((t) => (
               <span key={t} style={{ background: "var(--pd)", color: "var(--p)", fontSize: 11, padding: "3px 10px", borderRadius: 20, border: "0.5px solid #9D4EDD44", fontWeight: 700 }}>{t}</span>
             ))}
@@ -1662,11 +1665,12 @@ function UserProfileModal({ user, onClose }: { user: SelectedUser; onClose: () =
         )}
       </div>
 
-      <div style={{ display: "flex", gap: 8, padding: "14px 20px 8px" }}>
-        <button onClick={toggleFollow} style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "0.5px solid", borderColor: isFollowing ? "var(--bd)" : "var(--p)", background: isFollowing ? "transparent" : "var(--p)", color: isFollowing ? "var(--txt)" : "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+      {/* Botões Seguir + Mensagem */}
+      <div style={{ display: "flex", gap: 8, padding: "12px 20px 8px" }}>
+        <button onClick={toggleFollow} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "0.5px solid", borderColor: isFollowing ? "var(--bd)" : "var(--p)", background: isFollowing ? "transparent" : "var(--p)", color: isFollowing ? "var(--txt)" : "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
           {isFollowing ? "✓ Seguindo" : "+ Seguir"}
         </button>
-        <button onClick={() => myId && setShowThread(true)} style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "0.5px solid var(--bd)", background: "transparent", color: "var(--txt)", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+        <button onClick={() => myId && setShowThread(true)} style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "0.5px solid var(--bd)", background: "transparent", color: "var(--txt)", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
