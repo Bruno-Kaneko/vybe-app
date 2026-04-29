@@ -61,6 +61,8 @@ type PostComment = {
 
 type SelectedUser = { id: string; nome: string; avatar_url?: string | null; status: string };
 
+type NotifItem = { type: "like" | "comment"; userName: string; avatarUrl?: string | null; content?: string; at: string };
+
 type Message = {
   id: number;
   sender_id: string;
@@ -394,11 +396,53 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress,
 }) {
   const [selectedHood, setSelectedHood] = useState<string | null>(null);
   const [showHoodPicker, setShowHoodPicker] = useState(false);
+  const [feedMode, setFeedMode] = useState<"paravoc" | "seguindo">("paravoc");
+  const [followedUserIds, setFollowedUserIds] = useState<string[]>([]);
+  const [loadingFollowing, setLoadingFollowing] = useState(false);
+  const [showNotifs, setShowNotifs] = useState(false);
+  const [notifs, setNotifs] = useState<NotifItem[]>([]);
+  const [notifCount, setNotifCount] = useState(0);
   const hoods = [...new Set(venues.map((v) => v.hood))].sort();
   const hoodFiltered = selectedHood ? venues.filter((v) => v.hood === selectedHood) : venues;
   const visibleVenues = followsLoaded && followedVenueIds.length > 0
     ? hoodFiltered.filter((v) => followedVenueIds.includes(v.id))
     : [];
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) return;
+      const uid = session.user.id;
+      setLoadingFollowing(true);
+      supabase.from("user_follows").select("following_id").eq("follower_id", uid)
+        .then(({ data }) => {
+          setFollowedUserIds(data ? data.map((r: { following_id: string }) => r.following_id) : []);
+          setLoadingFollowing(false);
+        });
+      supabase.from("posts").select("id").eq("user_id", uid).then(({ data: myPosts }) => {
+        if (!myPosts || myPosts.length === 0) return;
+        const postIds = myPosts.map((p: { id: number }) => p.id);
+        Promise.all([
+          supabase.from("post_likes").select("created_at, profiles(nome, avatar_url)").in("post_id", postIds).neq("user_id", uid).order("created_at", { ascending: false }).limit(15),
+          supabase.from("post_comments").select("content, created_at, profiles(nome, avatar_url)").in("post_id", postIds).neq("user_id", uid).order("created_at", { ascending: false }).limit(15),
+        ]).then(([{ data: likes }, { data: comments }]) => {
+          const items: NotifItem[] = [];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (likes ?? []).forEach((l: any) => {
+            const prof = Array.isArray(l.profiles) ? l.profiles[0] : l.profiles;
+            items.push({ type: "like", userName: prof?.nome ?? "Alguém", avatarUrl: prof?.avatar_url, at: l.created_at });
+          });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (comments ?? []).forEach((c: any) => {
+            const prof = Array.isArray(c.profiles) ? c.profiles[0] : c.profiles;
+            items.push({ type: "comment", userName: prof?.nome ?? "Alguém", avatarUrl: prof?.avatar_url, content: c.content, at: c.created_at });
+          });
+          items.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+          setNotifs(items.slice(0, 20));
+          setNotifCount(items.length);
+        });
+      });
+    });
+  }, []);
 
   return (
     <div style={{ padding: "16px 20px" }}>
@@ -436,11 +480,14 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress,
             </>
           )}
         </div>
-        <button style={{ background: "none", border: "none", cursor: "pointer", padding: 6, display: "flex", alignItems: "center", color: "var(--mt)" }}>
+        <button onClick={() => { setShowNotifs(true); setNotifCount(0); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 6, display: "flex", alignItems: "center", color: "var(--mt)", position: "relative" }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
             <path d="M13.73 21a2 2 0 0 1-3.46 0" />
           </svg>
+          {notifCount > 0 && (
+            <div style={{ position: "absolute", top: 4, right: 4, width: 8, height: 8, borderRadius: "50%", background: "#EF4444", border: "1.5px solid var(--bg)" }} />
+          )}
         </button>
       </div>
 
@@ -506,16 +553,98 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress,
         );
       })()}
 
+      {/* Feed tabs */}
+      <div style={{ display: "flex", gap: 0, marginBottom: 16, borderBottom: "0.5px solid var(--bd)" }}>
+        {(["paravoc", "seguindo"] as const).map((mode) => (
+          <button
+            key={mode}
+            onClick={() => setFeedMode(mode)}
+            style={{
+              flex: 1, background: "none", border: "none", cursor: "pointer",
+              padding: "8px 0 10px", fontFamily: "inherit",
+              fontSize: 13, fontWeight: feedMode === mode ? 800 : 500,
+              color: feedMode === mode ? "var(--txt)" : "var(--mt)",
+              borderBottom: feedMode === mode ? "2px solid var(--p)" : "2px solid transparent",
+              marginBottom: -1, transition: "color 0.15s",
+            }}
+          >
+            {mode === "paravoc" ? "Para você" : "Seguindo"}
+          </button>
+        ))}
+      </div>
+
       {/* Posts */}
       {(() => {
-        const visiblePosts = posts.length > 0 ? posts : DEMO_POSTS;
-        const isDemo = posts.length === 0;
+        const allPosts = posts.length > 0 ? posts : DEMO_POSTS;
+        let visiblePosts = allPosts;
+        if (feedMode === "seguindo") {
+          if (loadingFollowing) {
+            return (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {[1, 2].map((i) => (
+                  <div key={i} style={{ height: 260, borderRadius: 18, background: "#1E1E38" }} />
+                ))}
+              </div>
+            );
+          }
+          visiblePosts = allPosts.filter((p) => followedUserIds.includes(p.user_id));
+          if (visiblePosts.length === 0) {
+            return (
+              <div style={{ textAlign: "center", padding: "48px 0" }}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 14 }}>
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                  <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+                </svg>
+                <div style={{ fontSize: 15, fontWeight: 800, color: "var(--txt)", marginBottom: 6 }}>Nenhum post ainda</div>
+                <div style={{ fontSize: 13, color: "var(--mt)", lineHeight: 1.5 }}>Siga pessoas para ver os posts delas aqui</div>
+              </div>
+            );
+          }
+        }
         return (
           <div style={{ margin: "0 -20px", display: "flex", flexDirection: "column", gap: 10 }}>
             {visiblePosts.map((p) => <RealPostCard key={p.id} post={p} onUserPress={onUserPress} />)}
           </div>
         );
       })()}
+
+      {/* Notifications panel */}
+      {showNotifs && (
+        <>
+          <div onClick={() => setShowNotifs(false)} style={{ position: "fixed", inset: 0, background: "#00000070", zIndex: 300 }} />
+          <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--surf)", borderRadius: "24px 24px 0 0", zIndex: 310, maxHeight: "70vh", display: "flex", flexDirection: "column" }}>
+            <div style={{ padding: "14px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "0.5px solid var(--bd)" }}>
+              <div style={{ fontSize: 16, fontWeight: 900, color: "var(--txt)" }}>Notificações</div>
+              <button onClick={() => setShowNotifs(false)} style={{ background: "none", border: "none", color: "var(--mt)", cursor: "pointer", fontSize: 22, lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ overflowY: "auto", flex: 1, padding: "8px 0" }}>
+              {notifs.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "40px 0", color: "var(--mt)", fontSize: 13 }}>
+                  Nenhuma notificação ainda
+                </div>
+              ) : notifs.map((n, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 20px", borderBottom: i < notifs.length - 1 ? "0.5px solid var(--bd)" : "none" }}>
+                  <div style={{ position: "relative", flexShrink: 0 }}>
+                    <UserAvatar profile={{ nome: n.userName, avatar_url: n.avatarUrl }} size={40} />
+                    <div style={{ position: "absolute", bottom: -2, right: -2, width: 18, height: 18, borderRadius: "50%", background: n.type === "like" ? "#EF4444" : "var(--p)", border: "2px solid var(--surf)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {n.type === "like"
+                        ? <HeartIcon filled size={9} color="#fff" />
+                        : <CommentIcon size={9} color="#fff" />}
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: 13, color: "var(--txt)", fontWeight: 700 }}>{n.userName}</span>
+                    <span style={{ fontSize: 13, color: "var(--mt)" }}>
+                      {n.type === "like" ? " curtiu seu post" : ` comentou: "${n.content?.slice(0, 40)}${(n.content?.length ?? 0) > 40 ? "..." : ""}"`}
+                    </span>
+                    <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>{timeSince(n.at)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -1592,7 +1721,7 @@ function ConversationThread({ myId, partner, onBack }: { myId: string; partner: 
 
 /* ── LOJA ── */
 function LojaTab() {
-  const myPts = 340;
+  const [myPts, setMyPts] = useState<number | null>(null);
   const rewards = [
     { n: "Drink grátis no Bar Brahma", pts: 200, icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--p)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 11l1.5-7.5L2 5l2 9a5 5 0 0 0 5 4h2a5 5 0 0 0 5-4z"/><path d="M8.5 2.5V5"/><path d="M16.5 5c0-1-1-2-2-2s-2 1-2 2 1 2 2 2 2-1 2-2z"/></svg> },
     { n: "1 like extra para dar", pts: 50, icon: <HeartIcon size={26} color="var(--p)" /> },
@@ -1600,6 +1729,23 @@ function LojaTab() {
     { n: "Fura-fila (1 uso)", pts: 150, icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--p)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> },
     { n: "Revelar curtida extra", pts: 100, icon: <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--p)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/></svg> },
   ];
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session?.user) return;
+      const uid = session.user.id;
+      Promise.all([
+        supabase.from("posts").select("*", { count: "exact", head: true }).eq("user_id", uid),
+        supabase.from("user_follows").select("*", { count: "exact", head: true }).eq("following_id", uid),
+      ]).then(([{ count: postCount }, { count: followerCount }]) => {
+        const posts = postCount ?? 0;
+        const followers = followerCount ?? 0;
+        const pts = posts * 20 + (posts > 0 ? 30 : 0) + followers * 10;
+        setMyPts(pts);
+      });
+    });
+  }, []);
+
   return (
     <div style={{ padding: "16px 20px" }}>
       <div style={{ fontSize: 22, fontWeight: 900, color: "var(--txt)", marginBottom: 16 }}>Lojinha</div>
@@ -1608,7 +1754,7 @@ function LojaTab() {
           <StarIcon size={28} />
           <div>
             <div style={{ fontSize: 9, color: "var(--mt)", fontWeight: 900, letterSpacing: 1 }}>SEU SALDO</div>
-            <div style={{ fontSize: 26, fontWeight: 900, color: "var(--p)" }}>{myPts} pts</div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: "var(--p)" }}>{myPts === null ? "..." : `${myPts} pts`}</div>
           </div>
         </div>
         <button style={{ background: "var(--pd)", color: "var(--p)", border: "0.5px solid #9D4EDD44", borderRadius: 12, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Histórico</button>
@@ -1637,11 +1783,11 @@ function LojaTab() {
             {item.icon}
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--txt)" }}>{item.n}</div>
-              <div style={{ fontSize: 12, color: item.pts <= myPts ? "var(--p)" : "var(--mt)", fontWeight: 900, marginTop: 2 }}>{item.pts} pts{item.pts > myPts ? " · insuficiente" : ""}</div>
+              <div style={{ fontSize: 12, color: myPts !== null && item.pts <= myPts ? "var(--p)" : "var(--mt)", fontWeight: 900, marginTop: 2 }}>{item.pts} pts{myPts !== null && item.pts > myPts ? " · insuficiente" : ""}</div>
             </div>
           </div>
-          <button style={{ background: item.pts <= myPts ? "var(--p)" : "#1A1A35", color: item.pts <= myPts ? "#fff" : "var(--mt)", border: "none", borderRadius: 10, padding: "8px 12px", fontSize: 12, fontWeight: 700, cursor: item.pts <= myPts ? "pointer" : "default" }}>
-            {item.pts <= myPts ? "Resgatar" : "—"}
+          <button style={{ background: myPts !== null && item.pts <= myPts ? "var(--p)" : "#1A1A35", color: myPts !== null && item.pts <= myPts ? "#fff" : "var(--mt)", border: "none", borderRadius: 10, padding: "8px 12px", fontSize: 12, fontWeight: 700, cursor: myPts !== null && item.pts <= myPts ? "pointer" : "default" }}>
+            {myPts !== null && item.pts <= myPts ? "Resgatar" : "—"}
           </button>
         </div>
       ))}
