@@ -503,12 +503,6 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress,
         const isDemo = posts.length === 0;
         return (
           <div style={{ margin: "0 -20px", display: "flex", flexDirection: "column", gap: 10 }}>
-            {isDemo && (
-              <div style={{ margin: "0 20px 4px", padding: "8px 14px", background: "#9D4EDD18", borderRadius: 12, border: "0.5px solid #9D4EDD30", display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 11, color: "var(--p)", fontWeight: 700 }}>✦ Prévia</span>
-                <span style={{ fontSize: 11, color: "var(--mt)" }}>Posts reais aparecerão aqui quando alguém postar</span>
-              </div>
-            )}
             {visiblePosts.map((p) => <RealPostCard key={p.id} post={p} onUserPress={onUserPress} />)}
           </div>
         );
@@ -575,9 +569,6 @@ function RealPostCard({ post, onUserPress }: { post: RealPost; onUserPress: (u: 
             <ShareIcon size={24} color="var(--txt)" />
           </button>
         </div>
-        <button onClick={() => setSaved(!saved)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}>
-          <BookmarkIcon filled={saved} size={24} color={saved ? "var(--p)" : "var(--txt)"} />
-        </button>
       </div>
 
       {/* Info */}
@@ -601,6 +592,28 @@ function CameraModal({ venues, profile, onClose, onPosted }: { venues: Venue[]; 
   const [duration, setDuration] = useState<2 | 4 | 6 | 8>(4);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [geoStatus, setGeoStatus] = useState<"checking" | "ok" | "denied" | "far">("checking");
+
+  useEffect(() => {
+    if (!navigator.geolocation) { setGeoStatus("denied"); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const withCoords = venues.filter((v) => v.lat != null && v.lng != null);
+        if (withCoords.length === 0) { setGeoStatus("ok"); return; }
+        let nearest: Venue | null = null;
+        let minDist = Infinity;
+        for (const v of withCoords) {
+          const d = haversine(latitude, longitude, v.lat!, v.lng!);
+          if (d < minDist) { minDist = d; nearest = v; }
+        }
+        if (nearest && minDist <= 0.5) { setSelectedVenue(nearest); setGeoStatus("ok"); }
+        else setGeoStatus("far");
+      },
+      () => setGeoStatus("denied"),
+      { timeout: 8000, maximumAge: 60000 }
+    );
+  }, []);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -650,18 +663,20 @@ function CameraModal({ venues, profile, onClose, onPosted }: { venues: Venue[]; 
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
 
-        {/* Toggle Story / Post */}
-        <div style={{ display: "flex", background: "var(--card)", borderRadius: 12, padding: 3, gap: 2, flex: 1, maxWidth: 200, margin: "0 auto" }}>
-          {(["story", "post"] as const).map((m) => (
-            <button key={m} onClick={() => { setMode(m); setStep("photo"); setSelectedFile(null); setPreviewUrl(null); }}
-              style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13,
-                background: mode === m ? "var(--p)" : "transparent", color: mode === m ? "#fff" : "var(--mt)" }}>
-              {m === "story" ? "Story" : "Post"}
-            </button>
-          ))}
-        </div>
+        {/* Toggle Story / Post — só visível quando geo ok */}
+        {geoStatus === "ok" && (
+          <div style={{ display: "flex", background: "var(--card)", borderRadius: 12, padding: 3, gap: 2, flex: 1, maxWidth: 200, margin: "0 auto" }}>
+            {(["story", "post"] as const).map((m) => (
+              <button key={m} onClick={() => { setMode(m); setStep("photo"); setSelectedFile(null); setPreviewUrl(null); }}
+                style={{ flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13,
+                  background: mode === m ? "var(--p)" : "transparent", color: mode === m ? "#fff" : "var(--mt)" }}>
+                {m === "story" ? "Story" : "Post"}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {step === "details" && (
+        {geoStatus === "ok" && step === "details" && (
           <button onClick={() => { setStep("photo"); setSelectedFile(null); setPreviewUrl(null); }}
             style={{ background: "none", border: "none", color: "var(--p)", fontSize: 13, cursor: "pointer" }}>
             Trocar
@@ -669,14 +684,44 @@ function CameraModal({ venues, profile, onClose, onPosted }: { venues: Venue[]; 
         )}
       </div>
 
-      {mode === "story" && step === "photo" && (
+      {geoStatus === "ok" && mode === "story" && step === "photo" && (
         <div style={{ padding: "0 20px 8px", textAlign: "center" }}>
           <span style={{ fontSize: 11, color: "var(--mt)", background: "var(--card)", padding: "4px 12px", borderRadius: 20 }}>Dura 2h · visível para seus seguidores</span>
         </div>
       )}
 
       <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 40px" }}>
-        {step === "photo" && (
+
+        {/* Estados de geolocalização */}
+        {geoStatus === "checking" && (
+          <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, paddingTop: 80 }}>
+            <div style={{ width: 40, height: 40, borderRadius: "50%", border: "3px solid var(--p)", borderTopColor: "transparent", animation: "spin 0.8s linear infinite" }} />
+            <span style={{ color: "var(--mt)", fontSize: 14 }}>Verificando sua localização...</span>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        )}
+        {geoStatus === "denied" && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, paddingTop: 80, textAlign: "center", padding: "80px 12px 0" }}>
+            <div style={{ fontSize: 56 }}>📍</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: "var(--txt)" }}>Localização necessária</div>
+            <div style={{ fontSize: 14, color: "var(--mt)", lineHeight: 1.7 }}>
+              Precisamos confirmar que você está fisicamente no rolê antes de publicar.<br/>Ative a localização nas configurações do seu celular e tente novamente.
+            </div>
+            <button className="btn-outline" onClick={onClose} style={{ marginTop: 8 }}>Fechar</button>
+          </div>
+        )}
+        {geoStatus === "far" && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, paddingTop: 80, textAlign: "center", padding: "80px 12px 0" }}>
+            <div style={{ fontSize: 56 }}>🗺️</div>
+            <div style={{ fontSize: 18, fontWeight: 900, color: "var(--txt)" }}>Você não está num rolê</div>
+            <div style={{ fontSize: 14, color: "var(--mt)", lineHeight: 1.7 }}>
+              No Vybe, só é possível postar quando você está fisicamente em um bar ou evento cadastrado.<br/>Vá curtir a noite e poste de lá!
+            </div>
+            <button className="btn-outline" onClick={onClose} style={{ marginTop: 8 }}>Fechar</button>
+          </div>
+        )}
+
+        {geoStatus === "ok" && step === "photo" && (
           <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, background: "var(--card)", border: "2px dashed var(--bd)", borderRadius: 24, minHeight: 340, cursor: "pointer" }}>
             <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} style={{ display: "none" }} />
             <CameraIcon size={56} color="var(--mt)" />
@@ -685,7 +730,7 @@ function CameraModal({ venues, profile, onClose, onPosted }: { venues: Venue[]; 
           </label>
         )}
 
-        {step === "details" && (
+        {geoStatus === "ok" && step === "details" && (
           <>
             {previewUrl && (
               <div style={{ borderRadius: 18, overflow: "hidden", marginBottom: 20, aspectRatio: "4/5" }}>
