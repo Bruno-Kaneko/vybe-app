@@ -25,6 +25,7 @@ type Venue = {
   image_url: string | null;
   lat?: number | null;
   lng?: number | null;
+  menu?: Array<{ name: string; price: string; category: string }> | null;
 };
 
 type Profile = {
@@ -1156,6 +1157,33 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
               </div>
             </div>
           )}
+
+          {/* Cardápio */}
+          <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 16, padding: "16px 18px" }}>
+            <div style={{ fontSize: 11, fontWeight: 900, color: "var(--mt)", letterSpacing: 0.5, marginBottom: 14 }}>CARDÁPIO</div>
+            {v.menu && v.menu.length > 0 ? (
+              Object.entries(
+                v.menu.reduce((acc, item) => {
+                  const cat = item.category || "Outros";
+                  if (!acc[cat]) acc[cat] = [];
+                  acc[cat].push(item);
+                  return acc;
+                }, {} as Record<string, typeof v.menu>)
+              ).map(([category, items]) => (
+                <div key={category} style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 10, fontWeight: 900, color: "var(--p)", letterSpacing: 0.5, marginBottom: 8 }}>{category.toUpperCase()}</div>
+                  {(items as Array<{ name: string; price: string; category: string }>).map((item, i, arr) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 0", borderBottom: i < arr.length - 1 ? "0.5px solid var(--bd)" : "none" }}>
+                      <span style={{ fontSize: 13, color: "var(--txt)", fontWeight: 600 }}>{item.name}</span>
+                      <span style={{ fontSize: 13, color: "var(--p)", fontWeight: 900 }}>{item.price}</span>
+                    </div>
+                  ))}
+                </div>
+              ))
+            ) : (
+              <div style={{ fontSize: 13, color: "var(--mt)", textAlign: "center", padding: "8px 0" }}>Cardápio em breve</div>
+            )}
+          </div>
         </div>
       )}
 
@@ -1488,6 +1516,23 @@ function LojaTab() {
         </div>
         <button style={{ background: "var(--pd)", color: "var(--p)", border: "0.5px solid #9D4EDD44", borderRadius: 12, padding: "8px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Histórico</button>
       </div>
+      {/* Como ganhar pontos */}
+      <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, padding: 16, marginBottom: 20 }}>
+        <div style={{ fontSize: 11, fontWeight: 900, color: "var(--mt)", letterSpacing: 0.5, marginBottom: 12 }}>COMO GANHAR PONTOS</div>
+        {[
+          { label: "Escanear QR Code no bar parceiro", pts: "+50" },
+          { label: "Postar no rolê", pts: "+20" },
+          { label: "Primeiro post do dia", pts: "+30" },
+          { label: "Ganhar um novo seguidor", pts: "+10" },
+          { label: "Report de situação validado", pts: "+5" },
+        ].map((item, i, arr) => (
+          <div key={item.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: i < arr.length - 1 ? "0.5px solid var(--bd)" : "none" }}>
+            <span style={{ fontSize: 13, color: "var(--txt)" }}>{item.label}</span>
+            <span style={{ fontSize: 13, fontWeight: 900, color: "#22C55E" }}>{item.pts} pts</span>
+          </div>
+        ))}
+      </div>
+
       <div style={{ fontSize: 10, fontWeight: 900, color: "var(--txt)", letterSpacing: 0.5, marginBottom: 12 }}>RESGATAR PONTOS</div>
       {rewards.map((item) => (
         <div key={item.n} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, padding: 14, marginBottom: 11, display: "flex", justifyContent: "space-between", alignItems: "center" }}>

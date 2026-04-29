@@ -12,7 +12,8 @@ const EMPTY_FORM = {
   image_url: "", lat: "", lng: "",
 };
 
-type Venue = typeof EMPTY_FORM & { id: number; status: string };
+type MenuItem = { name: string; price: string; category: string };
+type Venue = typeof EMPTY_FORM & { id: number; status: string; menu?: MenuItem[] | null };
 
 type Tab = "pendentes" | "aprovados" | "adicionar";
 
@@ -25,6 +26,10 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [menuName, setMenuName] = useState("");
+  const [menuPrice, setMenuPrice] = useState("");
+  const [menuCat, setMenuCat] = useState("Bebidas");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -55,6 +60,7 @@ export default function AdminPage() {
 
   function handleEdit(v: Venue) {
     setForm({ ...v, tags: Array.isArray(v.tags) ? v.tags.join(", ") : v.tags, lat: v.lat ?? "", lng: v.lng ?? "" });
+    setMenuItems(v.menu ?? []);
     setEditingId(v.id);
     setTab("adicionar");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -78,6 +84,7 @@ export default function AdminPage() {
       occ: Number(form.occ),
       lat: form.lat !== "" ? Number(form.lat) : null,
       lng: form.lng !== "" ? Number(form.lng) : null,
+      menu: menuItems.length > 0 ? menuItems : null,
     };
 
     if (editingId) {
@@ -97,6 +104,8 @@ export default function AdminPage() {
 
   function handleCancel() {
     setForm(EMPTY_FORM);
+    setMenuItems([]);
+    setMenuName(""); setMenuPrice(""); setMenuCat("Bebidas");
     setEditingId(null);
     setMsg("");
     setTab("aprovados");
@@ -357,6 +366,28 @@ export default function AdminPage() {
                 {form.vibe_type === "paquera" ? "✓" : ""}
               </div>
               <span style={{ fontSize: 13, color: "#6060A0" }}>Vibe paquera</span>
+            </div>
+          </div>
+
+          {/* Cardápio */}
+          <div style={{ marginTop: 20, borderTop: "0.5px solid #1E1E38", paddingTop: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 900, color: "#F0F0FA", marginBottom: 14 }}>Cardápio</div>
+            {menuItems.map((item, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, background: "#12122A", borderRadius: 10, padding: "8px 12px" }}>
+                <span style={{ flex: 1, fontSize: 13, color: "#F0F0FA" }}>{item.name}</span>
+                <span style={{ fontSize: 12, color: "#9D4EDD", fontWeight: 700 }}>{item.price}</span>
+                <span style={{ fontSize: 11, color: "#6060A0" }}>{item.category}</span>
+                <button onClick={() => setMenuItems((prev) => prev.filter((_, j) => j !== i))} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>×</button>
+              </div>
+            ))}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 100px 40px", gap: 8, marginTop: 10, alignItems: "center" }}>
+              <input style={inputStyle} placeholder="Nome do item" value={menuName} onChange={(e) => setMenuName(e.target.value)} />
+              <input style={inputStyle} placeholder="R$00" value={menuPrice} onChange={(e) => setMenuPrice(e.target.value)} />
+              <select style={inputStyle} value={menuCat} onChange={(e) => setMenuCat(e.target.value)}>
+                {["Bebidas", "Comidas", "Petiscos", "Drinks", "Sobremesas", "Outros"].map((c) => <option key={c}>{c}</option>)}
+              </select>
+              <button onClick={() => { if (menuName.trim() && menuPrice.trim()) { setMenuItems((prev) => [...prev, { name: menuName.trim(), price: menuPrice.trim(), category: menuCat }]); setMenuName(""); setMenuPrice(""); } }}
+                style={{ background: "#9D4EDD", border: "none", borderRadius: 8, color: "#fff", fontWeight: 900, fontSize: 18, cursor: "pointer", height: "100%" }}>+</button>
             </div>
           </div>
 
