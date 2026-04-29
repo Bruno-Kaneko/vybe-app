@@ -1169,7 +1169,6 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
             <div style={{ width: 36, height: 3, background: "var(--bd)", borderRadius: 2, margin: "0 auto 20px" }} />
             {reportDone ? (
               <div style={{ textAlign: "center", padding: "20px 0 10px" }}>
-                <div style={{ fontSize: 40, marginBottom: 10 }}>✅</div>
                 <div style={{ fontSize: 17, fontWeight: 900, color: "var(--txt)", marginBottom: 6 }}>Obrigado pelo report!</div>
                 <div style={{ fontSize: 13, color: "var(--mt)" }}>A situação foi atualizada.</div>
               </div>
