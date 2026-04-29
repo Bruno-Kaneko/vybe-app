@@ -350,7 +350,7 @@ const DEMO_POSTS: RealPost[] = [
     duration: 8,
     expires_at: new Date(now + 5 * 3600000).toISOString(),
     created_at: new Date(now - 45 * 60000).toISOString(),
-    profiles: { nome: "Julia Santos", status: "solteiro", avatar_url: null },
+    profiles: { nome: "Julia Santos", status: "solteiro", avatar_url: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=200&q=80" },
     venues: { name: "Bar Brahma", hood: "Centro", tags: ["Bar"] },
   },
   {
@@ -361,7 +361,7 @@ const DEMO_POSTS: RealPost[] = [
     duration: 6,
     expires_at: new Date(now + 3 * 3600000).toISOString(),
     created_at: new Date(now - 70 * 60000).toISOString(),
-    profiles: { nome: "Rafael Lima", status: "ficando", avatar_url: null },
+    profiles: { nome: "Rafael Lima", status: "ficando", avatar_url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80" },
     venues: { name: "Cine Joia", hood: "Liberdade", tags: ["Balada"] },
   },
   {
@@ -372,7 +372,7 @@ const DEMO_POSTS: RealPost[] = [
     duration: 4,
     expires_at: new Date(now + 1 * 3600000).toISOString(),
     created_at: new Date(now - 110 * 60000).toISOString(),
-    profiles: { nome: "Ana Souza", status: "curtindo", avatar_url: null },
+    profiles: { nome: "Ana Souza", status: "curtindo", avatar_url: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=200&q=80" },
     venues: { name: "Frank Bar", hood: "Vila Madalena", tags: ["Boteco"] },
   },
 ];
@@ -396,9 +396,18 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress,
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div style={{ position: "relative" }}>
           <div onClick={() => setShowHoodPicker((s) => !s)} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer" }}>
-            <PinIcon size={14} color="var(--pk)" />
-            <span style={{ fontSize: 15, fontWeight: 900, color: "var(--txt)" }}>{selectedHood ?? "São Paulo, SP"}</span>
-            <span style={{ fontSize: 11, color: "var(--mt)", display: "inline-block", transition: "transform 0.2s", transform: showHoodPicker ? "rotate(180deg)" : "rotate(0deg)" }}>▾</span>
+            {selectedHood ? (
+              <>
+                <PinIcon size={14} color="var(--pk)" />
+                <span style={{ fontSize: 15, fontWeight: 900, color: "var(--txt)" }}>{selectedHood}</span>
+                <span style={{ fontSize: 11, color: "var(--mt)", display: "inline-block", transition: "transform 0.2s", transform: showHoodPicker ? "rotate(180deg)" : "rotate(0deg)" }}>▾</span>
+              </>
+            ) : (
+              <>
+                <span style={{ fontSize: 28, fontWeight: 900, background: "linear-gradient(90deg, #9D4EDD, #FF006E)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", letterSpacing: -1, lineHeight: 1 }}>vybe</span>
+                <span style={{ fontSize: 11, color: "var(--mt)", display: "inline-block", transition: "transform 0.2s", transform: showHoodPicker ? "rotate(180deg)" : "rotate(0deg)", marginTop: 4 }}>▾</span>
+              </>
+            )}
           </div>
           {showHoodPicker && (
             <>
@@ -418,17 +427,12 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress,
             </>
           )}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <button style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", color: "var(--mt)" }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
-          </button>
-          <div onClick={onGoToProfile}>
-            <UserAvatar profile={profile} size={38} />
-          </div>
-        </div>
+        <button style={{ background: "none", border: "none", cursor: "pointer", padding: 6, display: "flex", alignItems: "center", color: "var(--mt)" }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+        </button>
       </div>
 
       {/* Stories */}
@@ -906,27 +910,30 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
         )}
       </div>
 
-      {/* Avatar + stats */}
-      <div style={{ display: "flex", alignItems: "flex-end", gap: 20, padding: "0 20px", marginTop: -44 }}>
+      {/* Avatar */}
+      <div style={{ padding: "0 20px", marginTop: -43 }}>
         <div style={{ width: 86, height: 86, borderRadius: "50%", border: "3px solid var(--bg)", overflow: "hidden", background: v.color + "30", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900, color: v.color, flexShrink: 0 }}>
           {v.image_url ? <img src={v.image_url} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : v.initial}
-        </div>
-        <div style={{ flex: 1, display: "flex", paddingBottom: 6 }}>
-          <div style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: "var(--txt)" }}>{venuePosts.length}</div>
-            <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>posts</div>
-          </div>
-          <div style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: "var(--txt)" }}>{followers}</div>
-            <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>seguidores</div>
-          </div>
         </div>
       </div>
 
       {/* Nome, bairro, distância */}
-      <div style={{ padding: "20px 20px 0" }}>
+      <div style={{ padding: "12px 20px 0" }}>
         <div style={{ fontSize: 17, fontWeight: 900, color: "var(--txt)", marginBottom: 2 }}>{v.name} <span style={{ fontWeight: 400, color: "var(--mt)" }}>— {v.hood}</span></div>
         {dist && <div style={{ fontSize: 12, color: "var(--cy)", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}><PinIcon size={12} color="var(--cy)" /> {dist} de você</div>}
+      </div>
+
+      {/* Stats */}
+      <div style={{ display: "flex", alignItems: "center", gap: 24, padding: "16px 20px 0" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: "var(--txt)" }}>{venuePosts.length}</div>
+          <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>posts</div>
+        </div>
+        <div style={{ width: 1, height: 28, background: "var(--bd)" }} />
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 20, fontWeight: 900, color: "var(--txt)" }}>{followers}</div>
+          <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>seguidores</div>
+        </div>
       </div>
 
       {/* Ir pra lá */}

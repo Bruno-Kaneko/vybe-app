@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 const SLIDES = [
   {
@@ -59,6 +59,8 @@ const SLIDES = [
 
 export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
 
   function finish() {
     onDone();
@@ -69,14 +71,39 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
     else finish();
   }
 
+  function goBack() {
+    if (step > 0) setStep(step - 1);
+  }
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current);
+    if (Math.abs(dx) > 48 && dy < 80) {
+      if (dx < 0) advance();
+      else goBack();
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  }
+
   const slide = SLIDES[step];
   const isLast = step === SLIDES.length - 1;
 
   return (
-    <div style={{ minHeight: "100vh", background: "#000", display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
+    <div
+      style={{ position: "fixed", inset: 0, background: "#000", display: "flex", flexDirection: "column", overflow: "hidden", touchAction: "pan-y" }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <button
         onClick={finish}
-        style={{ position: "absolute", top: 52, right: 24, background: "none", border: "none", color: "rgba(255,255,255,0.7)", fontSize: 14, cursor: "pointer", fontFamily: "inherit" }}
+        style={{ position: "absolute", top: 52, right: 24, background: "none", border: "none", color: "rgba(255,255,255,0.7)", fontSize: 14, cursor: "pointer", fontFamily: "inherit", zIndex: 10 }}
       >
         Pular
       </button>
@@ -128,7 +155,7 @@ export default function OnboardingScreen({ onDone }: { onDone: () => void }) {
           justifyContent: "center",
           gap: 8,
           letterSpacing: 0.2,
-          transition: "background 0.4s ease",
+          flexShrink: 0,
         }}
       >
         {isLast ? "Começar" : "Próximo"}
