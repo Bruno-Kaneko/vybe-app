@@ -1,6 +1,23 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { GoogleMap, Marker, InfoWindow, useJsApiLoader, Autocomplete } from "@react-google-maps/api";
+
+const GMAPS_LIBRARIES: ("places")[] = ["places"];
+
+const DARK_MAP_STYLE = [
+  { elementType: "geometry", stylers: [{ color: "#08080F" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#6060A0" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#08080F" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#1E1E38" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#0E0E1C" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#2A2A50" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0E0E1C" }] },
+  { featureType: "poi", stylers: [{ visibility: "off" }] },
+  { featureType: "transit", stylers: [{ visibility: "off" }] },
+  { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#1E1E38" }] },
+  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#9D4EDD" }] },
+];
 import BottomNav from "./BottomNav";
 import { supabase } from "@/lib/supabase";
 
@@ -807,6 +824,11 @@ const FILTER_TYPES = ["Balada", "Bar", "Pagode", "Sertanejo", "Eletrônica", "Bo
 function SearchTab({ venues, loading, userLocation, onVenuePress, onUserPress }: { venues: Venue[]; loading: boolean; userLocation: UserLocation | null; onVenuePress: (v: Venue) => void; onUserPress: (u: SelectedUser) => void }) {
   const [query, setQuery] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
+  const [mapSelectedVenue, setMapSelectedVenue] = useState<Venue | null>(null);
+  const { isLoaded: mapsLoaded } = useJsApiLoader({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "",
+    libraries: GMAPS_LIBRARIES,
+  });
   const [showFilter, setShowFilter] = useState(false);
   const [filterTypes, setFilterTypes] = useState<string[]>([]);
   const [filterPrices, setFilterPrices] = useState<string[]>([]);
@@ -850,10 +872,57 @@ function SearchTab({ venues, loading, userLocation, onVenuePress, onUserPress }:
       </div>
 
       {viewMode === "map" && (
-        <div style={{ borderRadius: 18, overflow: "hidden", border: "0.5px solid var(--bd)", marginBottom: 16 }}>
-          <iframe src="https://www.openstreetmap.org/export/embed.html?bbox=-46.71%2C-23.62%2C-46.55%2C-23.50&layer=mapnik" style={{ width: "100%", height: 420, border: "none", display: "block" }} title="Mapa São Paulo" />
-          <div style={{ background: "var(--card)", padding: "10px 14px", fontSize: 12, color: "var(--mt)", textAlign: "center" }}>
-            Marcadores em breve · <a href="https://www.openstreetmap.org/#map=13/-23.555/-46.630" target="_blank" rel="noopener noreferrer" style={{ color: "var(--p)" }}>Abrir completo</a>
+        <div style={{ borderRadius: 18, overflow: "hidden", border: "0.5px solid var(--bd)", marginBottom: 16, position: "relative" }}>
+          {!mapsLoaded ? (
+            <div style={{ height: 420, background: "var(--card)", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexDirection: "column" }}>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", border: "3px solid var(--p)", borderTopColor: "transparent", animation: "spin 0.8s linear infinite" }} />
+              <span style={{ color: "var(--mt)", fontSize: 13 }}>Carregando mapa...</span>
+            </div>
+          ) : (
+            <GoogleMap
+              mapContainerStyle={{ width: "100%", height: 420 }}
+              center={userLocation ? { lat: userLocation.lat, lng: userLocation.lng } : { lat: -23.555, lng: -46.630 }}
+              zoom={13}
+              options={{ styles: DARK_MAP_STYLE, disableDefaultUI: true, zoomControl: true, gestureHandling: "greedy" }}
+            >
+              {venues.filter((v) => v.lat != null && v.lng != null).map((v) => (
+                <Marker
+                  key={v.id}
+                  position={{ lat: v.lat!, lng: v.lng! }}
+                  onClick={() => setMapSelectedVenue(v)}
+                  icon={{
+                    path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z",
+                    fillColor: v.color,
+                    fillOpacity: 1,
+                    strokeColor: "#fff",
+                    strokeWeight: 1.5,
+                    scale: 1.6,
+                    anchor: new window.google.maps.Point(12, 22),
+                  }}
+                />
+              ))}
+              {mapSelectedVenue && mapSelectedVenue.lat && mapSelectedVenue.lng && (
+                <InfoWindow
+                  position={{ lat: mapSelectedVenue.lat, lng: mapSelectedVenue.lng }}
+                  onCloseClick={() => setMapSelectedVenue(null)}
+                  options={{ pixelOffset: new window.google.maps.Size(0, -36) }}
+                >
+                  <div style={{ background: "#12122A", borderRadius: 12, padding: "10px 14px", minWidth: 160, fontFamily: "inherit" }}>
+                    <div style={{ fontWeight: 900, fontSize: 14, color: "#F0F0FA", marginBottom: 3 }}>{mapSelectedVenue.name}</div>
+                    <div style={{ fontSize: 12, color: "#6060A0", marginBottom: 8 }}>{mapSelectedVenue.hood} · {mapSelectedVenue.price}</div>
+                    <button
+                      onClick={() => { onVenuePress(mapSelectedVenue); setMapSelectedVenue(null); }}
+                      style={{ background: "#9D4EDD", border: "none", borderRadius: 8, color: "#fff", fontSize: 12, fontWeight: 700, padding: "6px 14px", cursor: "pointer", width: "100%" }}
+                    >
+                      Ver perfil
+                    </button>
+                  </div>
+                </InfoWindow>
+              )}
+            </GoogleMap>
+          )}
+          <div style={{ background: "var(--card)", padding: "8px 14px", fontSize: 11, color: "var(--mt)", textAlign: "center" }}>
+            {venues.filter((v) => v.lat != null && v.lng != null).length} lugares no mapa
           </div>
         </div>
       )}

@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { useJsApiLoader, Autocomplete } from "@react-google-maps/api";
+
+const GMAPS_LIBRARIES: ("places")[] = ["places"];
 
 const ADMIN_EMAILS = ["brunoknk173@icloud.com", "michel.lepine7@gmail.com"];
 
@@ -25,6 +28,23 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState("");
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const { isLoaded: mapsLoaded } = useJsApiLoader({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "",
+    libraries: GMAPS_LIBRARIES,
+  });
+
+  function handlePlaceChanged() {
+    const place = autocompleteRef.current?.getPlace();
+    if (!place?.geometry?.location) return;
+    setForm((f) => ({
+      ...f,
+      address: place.formatted_address ?? f.address,
+      lat: place.geometry!.location!.lat().toFixed(6),
+      lng: place.geometry!.location!.lng().toFixed(6),
+      hood: f.hood || (place.address_components?.find((c) => c.types.includes("sublocality") || c.types.includes("neighborhood"))?.long_name ?? f.hood),
+    }));
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -268,6 +288,21 @@ export default function AdminPage() {
               <label style={labelStyle}>BAIRRO *</label>
               <input style={inputStyle} value={form.hood} onChange={(e) => set("hood", e.target.value)} placeholder="Ex: Liberdade" />
             </div>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={labelStyle}>BUSCAR NO GOOGLE MAPS 🔍</label>
+              {mapsLoaded ? (
+                <Autocomplete
+                  onLoad={(ref) => { autocompleteRef.current = ref; }}
+                  onPlaceChanged={handlePlaceChanged}
+                  options={{ componentRestrictions: { country: "br" } }}
+                >
+                  <input style={{ ...inputStyle, borderColor: "#9D4EDD55" }} placeholder="Digite o nome ou endereço do lugar..." />
+                </Autocomplete>
+              ) : (
+                <input style={inputStyle} disabled placeholder="Carregando Google Maps..." />
+              )}
+              <div style={{ fontSize: 11, color: "#6060A0", marginTop: 5 }}>Selecione o lugar e os campos de endereço, latitude e longitude serão preenchidos automaticamente.</div>
+            </div>
             <div>
               <label style={labelStyle}>ENDEREÇO</label>
               <input style={inputStyle} value={form.address} onChange={(e) => set("address", e.target.value)} placeholder="Ex: Av. Brig. Luis Antonio, 82" />
@@ -279,13 +314,6 @@ export default function AdminPage() {
             <div>
               <label style={labelStyle}>LONGITUDE 📍</label>
               <input style={inputStyle} value={form.lng} onChange={(e) => set("lng", e.target.value)} placeholder="Ex: -46.6544" />
-            </div>
-            <div style={{ gridColumn: "1 / -1", background: "#9D4EDD12", border: "0.5px solid #9D4EDD30", borderRadius: 10, padding: "10px 14px" }}>
-              <div style={{ fontSize: 11, color: "#9D4EDD", fontWeight: 700, marginBottom: 4 }}>📌 COMO OBTER AS COORDENADAS</div>
-              <div style={{ fontSize: 12, color: "#6060A0", lineHeight: 1.6 }}>
-                Abra o Google Maps → clique com o botão direito no local → clique nas coordenadas para copiar.<br/>
-                Ex: <span style={{ color: "#F0F0FA" }}>-23.5629, -46.6544</span> → Latitude: -23.5629 · Longitude: -46.6544
-              </div>
             </div>
             <div style={{ gridColumn: "1 / -1" }}>
               <label style={labelStyle}>TAGS (separadas por vírgula)</label>
