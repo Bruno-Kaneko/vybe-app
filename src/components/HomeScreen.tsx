@@ -51,6 +51,14 @@ type RealPost = {
 
 type UserLocation = { lat: number; lng: number };
 
+type PostComment = {
+  id: number;
+  user_id: string;
+  content: string;
+  created_at: string;
+  profiles: { nome: string; avatar_url?: string | null } | null;
+};
+
 type SelectedUser = { id: string; nome: string; avatar_url?: string | null; status: string };
 
 type Message = {
@@ -514,68 +522,156 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress,
 
 function RealPostCard({ post, onUserPress }: { post: RealPost; onUserPress: (u: SelectedUser) => void }) {
   const [liked, setLiked] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<PostComment[]>([]);
+  const [commentText, setCommentText] = useState("");
+  const [myId, setMyId] = useState<string | null>(null);
+  const [addingComment, setAddingComment] = useState(false);
   const nome = post.profiles?.nome ?? "Usuário";
   const badge = STATUS_OPTIONS.find((s) => s.key === (post.profiles?.status ?? "solteiro")) ?? STATUS_OPTIONS[0];
   const venueName = post.venues?.name ?? null;
-  const venueTag = post.venues?.tags?.[0] ?? null;
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) return;
+      const uid = session.user.id;
+      setMyId(uid);
+      supabase.from("post_likes").select("*", { count: "exact", head: true }).eq("post_id", post.id)
+        .then(({ count }) => setLikeCount(count ?? 0));
+      supabase.from("post_likes").select("user_id").eq("post_id", post.id).eq("user_id", uid).maybeSingle()
+        .then(({ data }) => setLiked(!!data));
+    });
+  }, [post.id]);
+
+  async function handleLike() {
+    if (!myId) return;
+    if (liked) {
+      await supabase.from("post_likes").delete().eq("post_id", post.id).eq("user_id", myId);
+      setLiked(false); setLikeCount((c) => Math.max(0, c - 1));
+    } else {
+      await supabase.from("post_likes").insert({ post_id: post.id, user_id: myId });
+      setLiked(true); setLikeCount((c) => c + 1);
+    }
+  }
+
+  async function fetchComments() {
+    const { data } = await supabase.from("post_comments")
+      .select("*, profiles(nome, avatar_url)")
+      .eq("post_id", post.id)
+      .order("created_at", { ascending: true })
+      .limit(50);
+    if (data) setComments(data as PostComment[]);
+  }
+
+  async function openComments() { setShowComments(true); await fetchComments(); }
+
+  async function handleAddComment() {
+    if (!myId || !commentText.trim()) return;
+    setAddingComment(true);
+    await supabase.from("post_comments").insert({ post_id: post.id, user_id: myId, content: commentText.trim() });
+    setCommentText("");
+    await fetchComments();
+    setAddingComment(false);
+  }
 
   function handleUserPress() {
     onUserPress({ id: post.user_id, nome, avatar_url: post.profiles?.avatar_url, status: post.profiles?.status ?? "solteiro" });
   }
 
   return (
-    <div style={{ background: "var(--card)", overflow: "hidden" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px" }}>
-        <div onClick={handleUserPress} style={{ cursor: "pointer" }}>
-          <UserAvatar profile={post.profiles} size={40} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-            <span onClick={handleUserPress} style={{ fontSize: 14, fontWeight: 800, color: "var(--txt)", cursor: "pointer" }}>{nome}</span>
-            <div style={{ width: 14, height: 3, borderRadius: 2, background: badge.color, flexShrink: 0 }} />
+    <>
+      <div style={{ background: "var(--card)", overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px" }}>
+          <div onClick={handleUserPress} style={{ cursor: "pointer" }}>
+            <UserAvatar profile={post.profiles} size={40} />
           </div>
-          {venueName && (
-            <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
-              <PinIcon size={10} color="var(--mt)" />
-              <span style={{ fontSize: 11, color: "var(--mt)" }}>{venueName}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <span onClick={handleUserPress} style={{ fontSize: 14, fontWeight: 800, color: "var(--txt)", cursor: "pointer" }}>{nome}</span>
+              <div style={{ width: 14, height: 3, borderRadius: 2, background: badge.color, flexShrink: 0 }} />
             </div>
-          )}
+            {venueName && (
+              <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+                <PinIcon size={10} color="var(--mt)" />
+                <span style={{ fontSize: 11, color: "var(--mt)" }}>{venueName}</span>
+              </div>
+            )}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 3, color: "var(--mt)", fontSize: 11 }}>
+            <ClockIcon size={11} color="var(--mt)" />
+            <span>{timeLeft(post.expires_at)}</span>
+          </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 3, color: "var(--mt)", fontSize: 11 }}>
-          <ClockIcon size={11} color="var(--mt)" />
-          <span>{timeLeft(post.expires_at)}</span>
+
+        <div style={{ width: "100%", aspectRatio: "4/5", overflow: "hidden" }}>
+          <img src={post.image_url} alt="post" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        </div>
+
+        <div style={{ padding: "12px 14px 0", display: "flex", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 18, flex: 1 }}>
+            <button onClick={handleLike} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}>
+              <HeartIcon filled={liked} size={26} color={liked ? "var(--pk)" : "var(--txt)"} />
+            </button>
+            <button onClick={openComments} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}>
+              <CommentIcon size={24} color="var(--txt)" />
+            </button>
+            <button style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}>
+              <ShareIcon size={24} color="var(--txt)" />
+            </button>
+          </div>
+        </div>
+
+        <div style={{ padding: "8px 14px 16px" }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "var(--txt)", marginBottom: 2 }}>
+            {likeCount} {likeCount === 1 ? "curtida" : "curtidas"}
+          </div>
+          <div onClick={openComments} style={{ fontSize: 12, color: "var(--mt)", marginBottom: 4, cursor: "pointer" }}>
+            {comments.length > 0 ? `Ver ${comments.length} comentário${comments.length > 1 ? "s" : ""}` : "Adicionar comentário"}
+          </div>
+          <div style={{ fontSize: 11, color: "var(--mt)" }}>{timeSince(post.created_at)}</div>
         </div>
       </div>
 
-      {/* Imagem */}
-      <div style={{ width: "100%", aspectRatio: "4/5", overflow: "hidden" }}>
-        <img src={post.image_url} alt="post" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-      </div>
-
-      {/* Ações */}
-      <div style={{ padding: "12px 14px 0", display: "flex", alignItems: "center" }}>
-        <div style={{ display: "flex", gap: 18, flex: 1 }}>
-          <button onClick={() => setLiked(!liked)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}>
-            <HeartIcon filled={liked} size={26} color={liked ? "var(--pk)" : "var(--txt)"} />
-          </button>
-          <button style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}>
-            <CommentIcon size={24} color="var(--txt)" />
-          </button>
-          <button style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}>
-            <ShareIcon size={24} color="var(--txt)" />
-          </button>
-        </div>
-      </div>
-
-      {/* Info */}
-      <div style={{ padding: "8px 14px 16px" }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: "var(--txt)", marginBottom: 2 }}>0 curtidas</div>
-        <div style={{ fontSize: 12, color: "var(--mt)", marginBottom: 4 }}>Ver todos os comentários</div>
-        <div style={{ fontSize: 11, color: "var(--mt)" }}>{timeSince(post.created_at)}</div>
-      </div>
-    </div>
+      {showComments && (
+        <>
+          <div onClick={() => setShowComments(false)} style={{ position: "fixed", inset: 0, background: "#00000080", zIndex: 80 }} />
+          <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, background: "var(--surf)", borderRadius: "24px 24px 0 0", border: "0.5px solid var(--bd)", zIndex: 90, maxHeight: "75vh", display: "flex", flexDirection: "column" }}>
+            <div style={{ padding: "16px 20px 12px", borderBottom: "0.5px solid var(--bd)", flexShrink: 0 }}>
+              <div style={{ width: 36, height: 3, background: "var(--bd)", borderRadius: 2, margin: "0 auto 14px" }} />
+              <div style={{ fontSize: 15, fontWeight: 900, color: "var(--txt)" }}>Comentários</div>
+            </div>
+            <div style={{ flex: 1, overflowY: "auto", padding: "12px 20px" }}>
+              {comments.length === 0 ? (
+                <div style={{ textAlign: "center", color: "var(--mt)", fontSize: 13, paddingTop: 20 }}>Nenhum comentário ainda. Seja o primeiro!</div>
+              ) : (
+                comments.map((c) => (
+                  <div key={c.id} style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+                    <UserAvatar profile={c.profiles} size={32} />
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: "var(--txt)" }}>{c.profiles?.nome ?? "Usuário"} </span>
+                      <span style={{ fontSize: 13, color: "var(--txt)" }}>{c.content}</span>
+                      <div style={{ fontSize: 10, color: "var(--mt)", marginTop: 3 }}>{timeSince(c.created_at)}</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <div style={{ padding: "12px 20px 32px", borderTop: "0.5px solid var(--bd)", display: "flex", gap: 10, flexShrink: 0 }}>
+              <input value={commentText} onChange={(e) => setCommentText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
+                placeholder="Adicionar comentário..."
+                style={{ flex: 1, background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 20, padding: "10px 16px", color: "var(--txt)", fontSize: 13, outline: "none", fontFamily: "inherit" }}
+              />
+              <button onClick={handleAddComment} disabled={!commentText.trim() || addingComment}
+                style={{ background: commentText.trim() ? "var(--p)" : "var(--card)", border: "none", borderRadius: 20, padding: "0 18px", color: "#fff", fontWeight: 700, fontSize: 13, cursor: commentText.trim() ? "pointer" : "default", opacity: addingComment ? 0.7 : 1 }}>
+                {addingComment ? "..." : "Enviar"}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </>
   );
 }
 
@@ -1278,6 +1374,7 @@ function VenueCard({ venue: v, onClick, userLocation }: { venue: Venue; onClick:
           </div>
           <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 6 }}>
             {(v.tags || []).map((t) => <span key={t} style={{ display: "inline-block", background: "var(--pd)", color: "var(--p)", fontSize: 10, padding: "3px 9px", borderRadius: 20, border: "0.5px solid #9D4EDD44", fontWeight: 700 }}>{t}</span>)}
+            {v.vibe_type === "paquera" && <span style={{ display: "inline-block", background: "#FF006E15", color: "#FF006E", fontSize: 10, padding: "3px 9px", borderRadius: 20, border: "0.5px solid #FF006E44", fontWeight: 700 }}>paquera</span>}
           </div>
         </div>
         <span onClick={(e) => { e.stopPropagation(); setFav(!fav); }} style={{ color: fav ? "var(--pk)" : "var(--mt)", fontSize: 20, cursor: "pointer", flexShrink: 0 }}>{fav ? "♥" : "♡"}</span>
