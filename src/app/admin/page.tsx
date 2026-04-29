@@ -9,7 +9,7 @@ const EMPTY_FORM = {
   name: "", hood: "", address: "", tags: "", price: "$$",
   close_time: "", entry: "Grátis", parking: false, transit: "",
   has_seat: false, vibe_type: "resenha", color: "#9D4EDD", initial: "", occ: 0,
-  image_url: "",
+  image_url: "", lat: "", lng: "",
 };
 
 type Venue = typeof EMPTY_FORM & { id: number; status: string };
@@ -54,7 +54,7 @@ export default function AdminPage() {
   }
 
   function handleEdit(v: Venue) {
-    setForm({ ...v, tags: Array.isArray(v.tags) ? v.tags.join(", ") : v.tags });
+    setForm({ ...v, tags: Array.isArray(v.tags) ? v.tags.join(", ") : v.tags, lat: v.lat ?? "", lng: v.lng ?? "" });
     setEditingId(v.id);
     setTab("adicionar");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -76,6 +76,8 @@ export default function AdminPage() {
       ...form,
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
       occ: Number(form.occ),
+      lat: form.lat !== "" ? Number(form.lat) : null,
+      lng: form.lng !== "" ? Number(form.lng) : null,
     };
 
     if (editingId) {
@@ -269,6 +271,21 @@ export default function AdminPage() {
             <div>
               <label style={labelStyle}>ENDEREÇO</label>
               <input style={inputStyle} value={form.address} onChange={(e) => set("address", e.target.value)} placeholder="Ex: Av. Brig. Luis Antonio, 82" />
+            </div>
+            <div>
+              <label style={labelStyle}>LATITUDE 📍</label>
+              <input style={inputStyle} value={form.lat} onChange={(e) => set("lat", e.target.value)} placeholder="Ex: -23.5629" />
+            </div>
+            <div>
+              <label style={labelStyle}>LONGITUDE 📍</label>
+              <input style={inputStyle} value={form.lng} onChange={(e) => set("lng", e.target.value)} placeholder="Ex: -46.6544" />
+            </div>
+            <div style={{ gridColumn: "1 / -1", background: "#9D4EDD12", border: "0.5px solid #9D4EDD30", borderRadius: 10, padding: "10px 14px" }}>
+              <div style={{ fontSize: 11, color: "#9D4EDD", fontWeight: 700, marginBottom: 4 }}>📌 COMO OBTER AS COORDENADAS</div>
+              <div style={{ fontSize: 12, color: "#6060A0", lineHeight: 1.6 }}>
+                Abra o Google Maps → clique com o botão direito no local → clique nas coordenadas para copiar.<br/>
+                Ex: <span style={{ color: "#F0F0FA" }}>-23.5629, -46.6544</span> → Latitude: -23.5629 · Longitude: -46.6544
+              </div>
             </div>
             <div style={{ gridColumn: "1 / -1" }}>
               <label style={labelStyle}>TAGS (separadas por vírgula)</label>
