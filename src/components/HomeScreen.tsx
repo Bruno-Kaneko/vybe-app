@@ -961,7 +961,7 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
           </div>
           {/* Tags */}
           {(v.tags || []).length > 0 && (
-            <div style={{ position: "absolute", bottom: 56, right: 12, display: "flex", gap: 5, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <div style={{ position: "absolute", bottom: 12, right: 12, display: "flex", gap: 5, flexWrap: "wrap", justifyContent: "flex-end" }}>
               {(v.tags || []).map((t) => (
                 <span key={t} style={{ background: "#00000075", color: "#fff", fontSize: 10, padding: "4px 10px", borderRadius: 20, fontWeight: 700, backdropFilter: "blur(6px)" }}>{t}</span>
               ))}
@@ -970,7 +970,7 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
         </div>
 
         {/* Avatar + Name row */}
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 14, padding: "0 20px", marginTop: -40 }}>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 14, padding: "0 20px", marginTop: -20 }}>
           <div style={{ width: 82, height: 82, borderRadius: "50%", border: "3px solid var(--bg)", overflow: "hidden", background: v.color + "30", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, fontWeight: 900, color: v.color, flexShrink: 0 }}>
             {v.image_url ? <img src={v.image_url} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : v.initial}
           </div>
