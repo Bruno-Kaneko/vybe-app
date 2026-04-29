@@ -45,10 +45,23 @@ type RealPost = {
   expires_at: string;
   created_at: string;
   profiles: { nome: string; status: string; avatar_url?: string | null } | null;
-  venues: { name: string; hood: string } | null;
+  venues: { name: string; hood: string; tags?: string[] } | null;
 };
 
 type UserLocation = { lat: number; lng: number };
+
+type SelectedUser = { id: string; nome: string; avatar_url?: string | null; status: string };
+
+type Message = {
+  id: number;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  created_at: string;
+  expires_at: string;
+  sender?: { nome: string; avatar_url?: string | null } | null;
+  receiver?: { nome: string; avatar_url?: string | null } | null;
+};
 
 const STATUS_OPTIONS = [
   { label: "Solteiro", color: "#22C55E", dot: "🟢", key: "solteiro" },
@@ -192,6 +205,13 @@ function LogoutIcon({ size = 16, color = "currentColor" }: { size?: number; colo
     </svg>
   );
 }
+function BookmarkIcon({ filled = false, size = 22, color = "currentColor" }: { filled?: boolean; size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : "none"} stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
 function UsersIcon({ size = 22, color = "currentColor" }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -235,6 +255,7 @@ export default function HomeScreen({ onSignOut }: { onSignOut: () => void }) {
   const [posts, setPosts] = useState<RealPost[]>([]);
   const [showCamera, setShowCamera] = useState(false);
   const [selectedVenueProfile, setSelectedVenueProfile] = useState<Venue | null>(null);
+  const [selectedUser, setSelectedUser] = useState<SelectedUser | null>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [followedVenueIds, setFollowedVenueIds] = useState<number[]>([]);
   const [followsLoaded, setFollowsLoaded] = useState(false);
@@ -244,7 +265,7 @@ export default function HomeScreen({ onSignOut }: { onSignOut: () => void }) {
   async function fetchPosts() {
     const { data } = await supabase
       .from("posts")
-      .select("*, profiles(nome, status, avatar_url), venues(name, hood)")
+      .select("*, profiles(nome, status, avatar_url), venues(name, hood, tags)")
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false });
     if (data) setPosts(data as RealPost[]);
@@ -295,9 +316,9 @@ export default function HomeScreen({ onSignOut }: { onSignOut: () => void }) {
       onTouchEnd={handleTouchEnd}
     >
       <div style={{ flex: 1, overflowY: "auto", paddingBottom: 80 }}>
-        {tab === "home" && <FeedTab venues={venues} loading={loadingVenues} profile={profile} onGoToProfile={() => setTab("perfil")} posts={posts} onVenuePress={setSelectedVenueProfile} followedVenueIds={followedVenueIds} followsLoaded={followsLoaded} />}
+        {tab === "home" && <FeedTab venues={venues} loading={loadingVenues} profile={profile} onGoToProfile={() => setTab("perfil")} posts={posts} onVenuePress={setSelectedVenueProfile} followedVenueIds={followedVenueIds} followsLoaded={followsLoaded} onUserPress={setSelectedUser} />}
         {tab === "search" && <SearchTab venues={venues} loading={loadingVenues} userLocation={userLocation} onVenuePress={setSelectedVenueProfile} />}
-        {tab === "chat" && <ChatTab />}
+        {tab === "chat" && <ChatTab myId={profile?.id ?? null} />}
         {tab === "loja" && <LojaTab />}
         {tab === "perfil" && <PerfilTab profile={profile} setProfile={setProfile} onSignOut={onSignOut} />}
       </div>
@@ -310,15 +331,57 @@ export default function HomeScreen({ onSignOut }: { onSignOut: () => void }) {
       {selectedVenueProfile && (
         <VenueProfileModal venue={selectedVenueProfile} userLocation={userLocation} onClose={() => setSelectedVenueProfile(null)} />
       )}
+
+      {selectedUser && (
+        <UserProfileModal user={selectedUser} onClose={() => setSelectedUser(null)} />
+      )}
     </div>
   );
 }
 
+/* ── POSTS DEMO (mostrados quando o feed está vazio) ── */
+const now = Date.now();
+const DEMO_POSTS: RealPost[] = [
+  {
+    id: -1,
+    user_id: "demo-1",
+    venue_id: null,
+    image_url: "https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?w=600&q=80",
+    duration: 8,
+    expires_at: new Date(now + 5 * 3600000).toISOString(),
+    created_at: new Date(now - 45 * 60000).toISOString(),
+    profiles: { nome: "Julia Santos", status: "solteiro", avatar_url: null },
+    venues: { name: "Bar Brahma", hood: "Centro", tags: ["Bar"] },
+  },
+  {
+    id: -2,
+    user_id: "demo-2",
+    venue_id: null,
+    image_url: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=600&q=80",
+    duration: 6,
+    expires_at: new Date(now + 3 * 3600000).toISOString(),
+    created_at: new Date(now - 70 * 60000).toISOString(),
+    profiles: { nome: "Rafael Lima", status: "ficando", avatar_url: null },
+    venues: { name: "Cine Joia", hood: "Liberdade", tags: ["Balada"] },
+  },
+  {
+    id: -3,
+    user_id: "demo-3",
+    venue_id: null,
+    image_url: "https://images.unsplash.com/photo-1543007631-283050bb3e8c?w=600&q=80",
+    duration: 4,
+    expires_at: new Date(now + 1 * 3600000).toISOString(),
+    created_at: new Date(now - 110 * 60000).toISOString(),
+    profiles: { nome: "Ana Souza", status: "curtindo", avatar_url: null },
+    venues: { name: "Frank Bar", hood: "Vila Madalena", tags: ["Boteco"] },
+  },
+];
+
 /* ── FEED ── */
-function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress, followedVenueIds, followsLoaded }: {
+function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress, followedVenueIds, followsLoaded, onUserPress }: {
   venues: Venue[]; loading: boolean; profile: Profile | null;
   onGoToProfile: () => void; posts: RealPost[]; onVenuePress: (v: Venue) => void;
-  followedVenueIds: number[]; followsLoaded: boolean;
+  followedVenueIds: number[]; followsLoaded: boolean; onUserPress: (u: SelectedUser) => void;
 }) {
   const [selectedHood, setSelectedHood] = useState<string | null>(null);
   const [showHoodPicker, setShowHoodPicker] = useState(false);
@@ -369,82 +432,154 @@ function FeedTab({ venues, loading, profile, onGoToProfile, posts, onVenuePress,
       </div>
 
       {/* Stories */}
-      {loading || !followsLoaded ? (
-        <div style={{ display: "flex", gap: 14, paddingBottom: 16, marginBottom: 8 }}>
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>
-              <div style={{ width: 58, height: 58, borderRadius: "50%", background: "#1E1E38" }} />
-              <div style={{ width: 42, height: 8, borderRadius: 4, background: "#1E1E38" }} />
-            </div>
-          ))}
-        </div>
-      ) : visibleVenues.length > 0 ? (
-        <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 16, marginBottom: 8 }}>
-          {visibleVenues.map((v) => (
-            <div key={v.id} onClick={() => onVenuePress(v)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0, cursor: "pointer" }}>
-              <VenueAvatar v={v} size={58} />
-              <span style={{ fontSize: 10, color: "var(--mt)", maxWidth: 58, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.name}</span>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div style={{ marginBottom: 16, padding: "12px 0", display: "flex", alignItems: "center", gap: 10, color: "var(--mt)" }}>
-          <div style={{ width: 58, height: 58, borderRadius: "50%", border: "1.5px dashed var(--bd)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      {(() => {
+        const userStories: SelectedUser[] = [];
+        posts.forEach((p) => {
+          if (p.profiles && !userStories.find((u) => u.id === p.user_id)) {
+            userStories.push({ id: p.user_id, nome: p.profiles.nome, avatar_url: p.profiles.avatar_url, status: p.profiles.status ?? "solteiro" });
+          }
+        });
+        const hasVenueStories = followsLoaded && visibleVenues.length > 0;
+        const hasUserStories = userStories.length > 0;
+        const showEmpty = followsLoaded && !hasVenueStories && !hasUserStories;
+
+        if (loading || !followsLoaded) return (
+          <div style={{ display: "flex", gap: 14, paddingBottom: 16, marginBottom: 8 }}>
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                <div style={{ width: 58, height: 58, borderRadius: "50%", background: "#1E1E38" }} />
+                <div style={{ width: 42, height: 8, borderRadius: 4, background: "#1E1E38" }} />
+              </div>
+            ))}
           </div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--txt)" }}>Siga rolês para ver stories</div>
-            <div style={{ fontSize: 11, marginTop: 2 }}>Abra um bar e toque em + Seguir</div>
+        );
+
+        if (showEmpty) return (
+          <div style={{ marginBottom: 16, padding: "12px 0", display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 58, height: 58, borderRadius: "50%", border: "1.5px dashed var(--bd)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--txt)" }}>Siga rolês para ver stories</div>
+              <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>Abra um bar e toque em + Seguir</div>
+            </div>
           </div>
-        </div>
-      )}
+        );
+
+        return (
+          <div style={{ display: "flex", gap: 14, overflowX: "auto", paddingBottom: 16, marginBottom: 8 }}>
+            {visibleVenues.map((v) => (
+              <div key={`v-${v.id}`} onClick={() => onVenuePress(v)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0, cursor: "pointer" }}>
+                <div style={{ padding: 2, borderRadius: "50%", background: "linear-gradient(135deg, #9D4EDD, #FF006E)" }}>
+                  <div style={{ background: "var(--bg)", borderRadius: "50%", padding: 2 }}>
+                    <VenueAvatar v={v} size={54} />
+                  </div>
+                </div>
+                <span style={{ fontSize: 10, color: "var(--mt)", maxWidth: 58, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.name}</span>
+              </div>
+            ))}
+            {userStories.map((u) => (
+              <div key={`u-${u.id}`} onClick={() => onUserPress(u)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0, cursor: "pointer" }}>
+                <div style={{ padding: 2, borderRadius: "50%", background: "linear-gradient(135deg, #00D9FF, #9D4EDD)" }}>
+                  <div style={{ background: "var(--bg)", borderRadius: "50%", padding: 2 }}>
+                    <UserAvatar profile={u} size={54} />
+                  </div>
+                </div>
+                <span style={{ fontSize: 10, color: "var(--mt)", maxWidth: 58, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.nome.split(" ")[0]}</span>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Posts */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        {posts.length > 0
-          ? posts.map((p) => <RealPostCard key={p.id} post={p} />)
-          : (
-            <div style={{ textAlign: "center", paddingTop: 40, color: "var(--mt)" }}>
-              <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}><CameraIcon size={48} color="var(--mt)" /></div>
-              <div style={{ fontWeight: 900, fontSize: 16, color: "var(--txt)", marginBottom: 8 }}>Nenhum post ainda</div>
-              <div style={{ fontSize: 13 }}>Seja o primeiro a postar de um rolê!</div>
-            </div>
-          )}
-      </div>
+      {(() => {
+        const visiblePosts = posts.length > 0 ? posts : DEMO_POSTS;
+        const isDemo = posts.length === 0;
+        return (
+          <div style={{ margin: "0 -20px", display: "flex", flexDirection: "column", gap: 10 }}>
+            {isDemo && (
+              <div style={{ margin: "0 20px 4px", padding: "8px 14px", background: "#9D4EDD18", borderRadius: 12, border: "0.5px solid #9D4EDD30", display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 11, color: "var(--p)", fontWeight: 700 }}>✦ Prévia</span>
+                <span style={{ fontSize: 11, color: "var(--mt)" }}>Posts reais aparecerão aqui quando alguém postar</span>
+              </div>
+            )}
+            {visiblePosts.map((p) => <RealPostCard key={p.id} post={p} onUserPress={isDemo ? () => {} : onUserPress} />)}
+          </div>
+        );
+      })()}
     </div>
   );
 }
 
-function RealPostCard({ post }: { post: RealPost }) {
+function RealPostCard({ post, onUserPress }: { post: RealPost; onUserPress: (u: SelectedUser) => void }) {
   const [liked, setLiked] = useState(false);
+  const [saved, setSaved] = useState(false);
   const nome = post.profiles?.nome ?? "Usuário";
   const badge = STATUS_OPTIONS.find((s) => s.key === (post.profiles?.status ?? "solteiro")) ?? STATUS_OPTIONS[0];
-  const venueName = post.venues?.name ?? "Rolê";
+  const venueName = post.venues?.name ?? null;
+  const venueTag = post.venues?.tags?.[0] ?? null;
+
+  function handleUserPress() {
+    onUserPress({ id: post.user_id, nome, avatar_url: post.profiles?.avatar_url, status: post.profiles?.status ?? "solteiro" });
+  }
 
   return (
-    <div style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 18, overflow: "hidden" }}>
+    <div style={{ background: "var(--card)", overflow: "hidden" }}>
+      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px" }}>
-        <UserAvatar profile={post.profiles} size={36} />
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--txt)" }}>{nome}</span>
-            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 10, background: badge.color + "20", color: badge.color, fontWeight: 700 }}>{badge.dot} {badge.label}</span>
-          </div>
-          <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}><PinIcon size={11} color="var(--pk)" /> {venueName}</div>
+        <div onClick={handleUserPress} style={{ cursor: "pointer" }}>
+          <UserAvatar profile={post.profiles} size={40} />
         </div>
-        <div style={{ fontSize: 10, color: "var(--mt)", background: "#1A1A35", padding: "4px 8px", borderRadius: 8 }}>{timeLeft(post.expires_at)}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+            <span onClick={handleUserPress} style={{ fontSize: 14, fontWeight: 800, color: "var(--txt)", cursor: "pointer" }}>{nome}</span>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: badge.color, flexShrink: 0 }} />
+          </div>
+          {venueName && (
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
+              <PinIcon size={10} color="var(--mt)" />
+              <span style={{ fontSize: 11, color: "var(--mt)" }}>{venueName}</span>
+              {venueTag && (
+                <span style={{ fontSize: 9, fontWeight: 800, color: "var(--pk)", background: "#FF006E18", borderRadius: 6, padding: "1px 6px", letterSpacing: 0.2 }}>{venueTag}</span>
+              )}
+            </div>
+          )}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 3, color: "var(--mt)", fontSize: 11 }}>
+          <ClockIcon size={11} color="var(--mt)" />
+          <span>{timeLeft(post.expires_at)}</span>
+        </div>
       </div>
+
+      {/* Imagem */}
       <div style={{ width: "100%", aspectRatio: "4/5", overflow: "hidden" }}>
         <img src={post.image_url} alt="post" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
       </div>
-      <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 16 }}>
-        <button onClick={() => setLiked(!liked)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: liked ? "var(--pk)" : "var(--mt)", fontSize: 13 }}>
-          <HeartIcon filled={liked} size={20} color={liked ? "var(--pk)" : "var(--mt)"} /> 0
+
+      {/* Ações */}
+      <div style={{ padding: "12px 14px 0", display: "flex", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 18, flex: 1 }}>
+          <button onClick={() => setLiked(!liked)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}>
+            <HeartIcon filled={liked} size={26} color={liked ? "var(--pk)" : "var(--txt)"} />
+          </button>
+          <button style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}>
+            <CommentIcon size={24} color="var(--txt)" />
+          </button>
+          <button style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}>
+            <ShareIcon size={24} color="var(--txt)" />
+          </button>
+        </div>
+        <button onClick={() => setSaved(!saved)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}>
+          <BookmarkIcon filled={saved} size={24} color={saved ? "var(--p)" : "var(--txt)"} />
         </button>
-        <button style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 5, color: "var(--mt)", fontSize: 13 }}>
-          <CommentIcon size={19} color="var(--mt)" /> 0
-        </button>
-        <div style={{ marginLeft: "auto", fontSize: 11, color: "var(--mt)" }}>{timeSince(post.created_at)}</div>
+      </div>
+
+      {/* Info */}
+      <div style={{ padding: "8px 14px 16px" }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: "var(--txt)", marginBottom: 2 }}>0 curtidas</div>
+        <div style={{ fontSize: 12, color: "var(--mt)", marginBottom: 4 }}>Ver todos os comentários</div>
+        <div style={{ fontSize: 11, color: "var(--mt)" }}>{timeSince(post.created_at)}</div>
       </div>
     </div>
   );
@@ -771,12 +906,12 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
         )}
       </div>
 
-      {/* Linha: avatar + stats (estilo Instagram) */}
-      <div style={{ display: "flex", alignItems: "center", gap: 20, padding: "0 20px", marginTop: -48 }}>
+      {/* Avatar + stats */}
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 20, padding: "0 20px", marginTop: -44 }}>
         <div style={{ width: 86, height: 86, borderRadius: "50%", border: "3px solid var(--bg)", overflow: "hidden", background: v.color + "30", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900, color: v.color, flexShrink: 0 }}>
           {v.image_url ? <img src={v.image_url} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : v.initial}
         </div>
-        <div style={{ flex: 1, display: "flex", gap: 0, paddingTop: 52 }}>
+        <div style={{ flex: 1, display: "flex", paddingBottom: 6 }}>
           <div style={{ flex: 1, textAlign: "center" }}>
             <div style={{ fontSize: 20, fontWeight: 900, color: "var(--txt)" }}>{venuePosts.length}</div>
             <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>posts</div>
@@ -788,8 +923,8 @@ function VenueProfileModal({ venue: v, userLocation, onClose }: { venue: Venue; 
         </div>
       </div>
 
-      {/* Nome, bairro, distância, tags */}
-      <div style={{ padding: "14px 20px 0" }}>
+      {/* Nome, bairro, distância */}
+      <div style={{ padding: "20px 20px 0" }}>
         <div style={{ fontSize: 17, fontWeight: 900, color: "var(--txt)", marginBottom: 2 }}>{v.name} <span style={{ fontWeight: 400, color: "var(--mt)" }}>— {v.hood}</span></div>
         {dist && <div style={{ fontSize: 12, color: "var(--cy)", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}><PinIcon size={12} color="var(--cy)" /> {dist} de você</div>}
       </div>
@@ -955,30 +1090,200 @@ function VenueCard({ venue: v, onClick, userLocation }: { venue: Venue; onClick:
 }
 
 /* ── CHAT ── */
-function ChatTab() {
+function ChatTab({ myId }: { myId: string | null }) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPartner, setSelectedPartner] = useState<SelectedUser | null>(null);
+
+  async function fetchMessages() {
+    if (!myId) { setLoading(false); return; }
+    const { data } = await supabase
+      .from("messages")
+      .select("*, sender:profiles!sender_id(nome, avatar_url), receiver:profiles!receiver_id(nome, avatar_url)")
+      .or(`sender_id.eq.${myId},receiver_id.eq.${myId}`)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (data) setMessages(data as Message[]);
+    setLoading(false);
+  }
+
+  useEffect(() => {
+    fetchMessages();
+    if (!myId) return;
+    const channel = supabase.channel(`chat-list-${myId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${myId}` }, fetchMessages)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [myId]);
+
+  // Agrupar por conversa
+  const convMap = new Map<string, { partner: SelectedUser; lastMsg: Message; unread: number }>();
+  [...messages].reverse().forEach((m) => {
+    const isMe = m.sender_id === myId;
+    const partnerId = isMe ? m.receiver_id : m.sender_id;
+    const partnerProfile = isMe ? m.receiver : m.sender;
+    const existing = convMap.get(partnerId);
+    if (!existing) {
+      convMap.set(partnerId, {
+        partner: { id: partnerId, nome: partnerProfile?.nome ?? "Usuário", avatar_url: partnerProfile?.avatar_url ?? null, status: "solteiro" },
+        lastMsg: m,
+        unread: isMe ? 0 : 1,
+      });
+    } else {
+      if (!isMe) existing.unread++;
+      existing.lastMsg = m;
+    }
+  });
+  const conversations = [...convMap.values()].sort((a, b) =>
+    new Date(b.lastMsg.created_at).getTime() - new Date(a.lastMsg.created_at).getTime()
+  );
+
+  if (selectedPartner && myId) {
+    return <ConversationThread myId={myId} partner={selectedPartner} onBack={() => setSelectedPartner(null)} />;
+  }
+
   return (
     <div style={{ padding: "16px 20px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div style={{ fontSize: 22, fontWeight: 900, color: "var(--txt)" }}>Mensagens</div>
         <div style={{ fontSize: 11, color: "var(--mt)", background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 20, padding: "4px 10px" }}>Somem em 8h</div>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {CHATS.map((c) => (
-          <div key={c.id} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 20, padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 56, height: 56, borderRadius: "50%", background: c.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 900, color: "#fff", flexShrink: 0 }}>{c.initial}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 900, fontSize: 15, color: "var(--txt)", marginBottom: 4 }}>{c.name}</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                {c.unread > 0 && (
-                  <span style={{ fontSize: 12, color: "var(--p)", fontWeight: 700 }}>{c.unread}+ nova{c.unread > 1 ? "s" : ""} mensagem{c.unread > 1 ? "s" : ""}</span>
-                )}
-                {c.unread > 0 && <span style={{ color: "var(--mt)", fontSize: 12 }}>·</span>}
-                <span style={{ fontSize: 12, color: "var(--mt)" }}>{c.time}</span>
+
+      {loading ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {[1, 2, 3].map((i) => <div key={i} style={{ height: 84, background: "var(--card)", borderRadius: 20 }} />)}
+        </div>
+      ) : conversations.length === 0 ? (
+        <div style={{ textAlign: "center", paddingTop: 60 }}>
+          <div style={{ fontSize: 40, marginBottom: 14 }}>💬</div>
+          <div style={{ fontSize: 16, fontWeight: 900, color: "var(--txt)", marginBottom: 8 }}>Nenhuma mensagem</div>
+          <div style={{ fontSize: 13, color: "var(--mt)" }}>Toque em "Mensagem" no perfil de alguém para começar</div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {conversations.map(({ partner, lastMsg, unread }) => (
+            <div key={partner.id} onClick={() => setSelectedPartner(partner)}
+              style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 20, padding: "14px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 14 }}>
+              <UserAvatar profile={partner} size={56} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 900, fontSize: 15, color: "var(--txt)", marginBottom: 4 }}>{partner.nome}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  {unread > 0 && <span style={{ fontSize: 12, color: "var(--p)", fontWeight: 700 }}>{unread}+ nova{unread > 1 ? "s" : ""} mensagem{unread > 1 ? "s" : ""}</span>}
+                  {unread > 0 && <span style={{ color: "var(--mt)", fontSize: 12 }}>·</span>}
+                  <span style={{ fontSize: 12, color: "var(--mt)" }}>{timeSince(lastMsg.created_at)}</span>
+                </div>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── THREAD DE CONVERSA ── */
+function ConversationThread({ myId, partner, onBack }: { myId: string; partner: SelectedUser; onBack: () => void }) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  async function fetchThread() {
+    const { data } = await supabase.from("messages")
+      .select("*")
+      .or(`sender_id.eq.${myId},receiver_id.eq.${myId}`)
+      .or(`sender_id.eq.${partner.id},receiver_id.eq.${partner.id}`)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: true });
+    if (data) setMessages(data as Message[]);
+  }
+
+  useEffect(() => {
+    fetchThread();
+    const channel = supabase.channel(`thread-${myId}-${partner.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        const m = payload.new as Message;
+        if ((m.sender_id === myId && m.receiver_id === partner.id) || (m.sender_id === partner.id && m.receiver_id === myId)) {
+          setMessages((prev) => [...prev, m]);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [myId, partner.id]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  async function send() {
+    if (!text.trim() || sending) return;
+    setSending(true);
+    await supabase.from("messages").insert({
+      sender_id: myId,
+      receiver_id: partner.id,
+      content: text.trim(),
+      expires_at: new Date(Date.now() + 8 * 3600000).toISOString(),
+    });
+    setText("");
+    setSending(false);
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "var(--bg)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "54px 16px 14px", background: "var(--surf)", borderBottom: "0.5px solid var(--bd)", flexShrink: 0 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", color: "var(--mt)", cursor: "pointer", display: "flex" }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+        </button>
+        <UserAvatar profile={partner} size={38} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 900, fontSize: 15, color: "var(--txt)" }}>{partner.nome}</div>
+          <div style={{ fontSize: 11, color: "var(--mt)" }}>Mensagens somem em 8h</div>
+        </div>
+      </div>
+
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: 8 }}>
+        {messages.length === 0 && (
+          <div style={{ textAlign: "center", paddingTop: 40, color: "var(--mt)", fontSize: 13 }}>
+            Envie a primeira mensagem para {partner.nome.split(" ")[0]}!
+          </div>
+        )}
+        {messages.map((m) => {
+          const isMe = m.sender_id === myId;
+          return (
+            <div key={m.id} style={{ display: "flex", justifyContent: isMe ? "flex-end" : "flex-start" }}>
+              <div style={{
+                maxWidth: "72%", padding: "10px 14px",
+                borderRadius: isMe ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                background: isMe ? "var(--p)" : "var(--card)",
+                border: isMe ? "none" : "0.5px solid var(--bd)",
+                color: isMe ? "#fff" : "var(--txt)",
+                fontSize: 14, lineHeight: 1.4,
+              }}>
+                <div>{m.content}</div>
+                <div style={{ fontSize: 10, opacity: 0.6, marginTop: 4, textAlign: "right" }}>{timeSince(m.created_at)}</div>
               </div>
             </div>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--mt)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </div>
-        ))}
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      <div style={{ padding: "12px 16px 32px", background: "var(--surf)", borderTop: "0.5px solid var(--bd)", display: "flex", gap: 10, alignItems: "center", flexShrink: 0 }}>
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+          placeholder="Mensagem..."
+          style={{ flex: 1, background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 22, padding: "12px 16px", color: "var(--txt)", fontSize: 14, outline: "none" }}
+        />
+        <button onClick={send} disabled={!text.trim() || sending}
+          style={{ width: 44, height: 44, borderRadius: "50%", background: text.trim() ? "var(--p)" : "var(--card)", border: "none", cursor: text.trim() ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "background 0.15s" }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={text.trim() ? "#fff" : "var(--mt)"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
+          </svg>
+        </button>
       </div>
     </div>
   );
@@ -1030,11 +1335,20 @@ function LojaTab() {
 function PerfilTab({ profile, setProfile, onSignOut }: { profile: Profile | null; setProfile: (p: Profile) => void; onSignOut: () => void }) {
   const [statusIdx, setStatusIdx] = useState(0);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [postCount, setPostCount] = useState(0);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
 
   useEffect(() => {
     if (!profile) return;
     const idx = STATUS_OPTIONS.findIndex((s) => s.key === profile.status);
     setStatusIdx(idx >= 0 ? idx : 0);
+    supabase.from("posts").select("*", { count: "exact", head: true }).eq("user_id", profile.id).gt("expires_at", new Date().toISOString())
+      .then(({ count }) => setPostCount(count ?? 0));
+    supabase.from("user_follows").select("*", { count: "exact", head: true }).eq("following_id", profile.id)
+      .then(({ count }) => setFollowerCount(count ?? 0));
+    supabase.from("user_follows").select("*", { count: "exact", head: true }).eq("follower_id", profile.id)
+      .then(({ count }) => setFollowingCount(count ?? 0));
   }, [profile]);
 
   async function handleStatusChange() {
@@ -1104,9 +1418,9 @@ function PerfilTab({ profile, setProfile, onSignOut }: { profile: Profile | null
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
         {[
           { l: "Rolês visitados", v: "0" },
-          { l: "Posts ativos", v: "0" },
-          { l: "Seguidores", v: "0" },
-          { l: "Seguindo", v: "0" },
+          { l: "Posts ativos", v: String(postCount) },
+          { l: "Seguidores", v: String(followerCount) },
+          { l: "Seguindo", v: String(followingCount) },
         ].map((s) => (
           <div key={s.l} style={{ background: "var(--card)", border: "0.5px solid var(--bd)", borderRadius: 14, padding: 14, textAlign: "center" }}>
             <div style={{ fontSize: 26, fontWeight: 900, color: "var(--txt)" }}>{s.v}</div>
@@ -1148,10 +1462,133 @@ function PerfilTab({ profile, setProfile, onSignOut }: { profile: Profile | null
   );
 }
 
-/* ── MOCK (chat) ── */
-const CHATS = [
-  { id: 1, name: "Mariana Costa", initial: "M", color: "#9D4EDD", time: "2h", unread: 4 },
-  { id: 2, name: "Audio Club", initial: "AC", color: "#1A1A35", time: "20h", unread: 2 },
-  { id: 3, name: "Rafael Lima", initial: "R", color: "#FF006E", time: "5h", unread: 0 },
-  { id: 4, name: "Cine Joia", initial: "CJ", color: "#7B2FBE", time: "8h", unread: 0 },
-];
+/* ── PERFIL DE OUTRO USUÁRIO ── */
+function UserProfileModal({ user, onClose }: { user: SelectedUser; onClose: () => void }) {
+  const [userPosts, setUserPosts] = useState<RealPost[]>([]);
+  const [fullProfile, setFullProfile] = useState<Profile | null>(null);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [myId, setMyId] = useState<string | null>(null);
+  const [showThread, setShowThread] = useState(false);
+  const badge = STATUS_OPTIONS.find((s) => s.key === user.status) ?? STATUS_OPTIONS[0];
+
+  useEffect(() => {
+    supabase.from("profiles").select("*").eq("id", user.id).single()
+      .then(({ data }) => { if (data) setFullProfile(data as Profile); });
+    supabase.from("posts").select("*, venues(name, hood)").eq("user_id", user.id)
+      .gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false })
+      .then(({ data }) => { if (data) setUserPosts(data as RealPost[]); });
+    supabase.from("user_follows").select("*", { count: "exact", head: true }).eq("following_id", user.id)
+      .then(({ count }) => setFollowerCount(count ?? 0));
+    supabase.from("user_follows").select("*", { count: "exact", head: true }).eq("follower_id", user.id)
+      .then(({ count }) => setFollowingCount(count ?? 0));
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) return;
+      setMyId(session.user.id);
+      supabase.from("user_follows").select("follower_id").eq("follower_id", session.user.id).eq("following_id", user.id).maybeSingle()
+        .then(({ data }) => setIsFollowing(!!data));
+    });
+  }, [user.id]);
+
+  async function toggleFollow() {
+    if (!myId) return;
+    if (isFollowing) {
+      await supabase.from("user_follows").delete().eq("follower_id", myId).eq("following_id", user.id);
+      setIsFollowing(false); setFollowerCount((c) => c - 1);
+    } else {
+      await supabase.from("user_follows").insert({ follower_id: myId, following_id: user.id });
+      setIsFollowing(true); setFollowerCount((c) => c + 1);
+    }
+  }
+
+  if (showThread && myId) {
+    return (
+      <div style={{ position: "fixed", inset: 0, zIndex: 80 }}>
+        <ConversationThread myId={myId} partner={user} onBack={() => setShowThread(false)} />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "var(--bg)", zIndex: 70, overflowY: "auto" }}>
+      <div style={{ position: "relative", width: "100%", height: 180, background: "linear-gradient(135deg, #9D4EDD33, #00D9FF22)", overflow: "hidden" }}>
+        <button onClick={onClose} style={{ position: "absolute", top: 52, left: 16, width: 38, height: 38, borderRadius: "50%", background: "#00000070", border: "none", color: "#fff", fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>←</button>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 20, padding: "0 20px", marginTop: -44 }}>
+        <div style={{ width: 86, height: 86, borderRadius: "50%", border: "3px solid var(--bg)", overflow: "hidden", background: "var(--p)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, fontWeight: 900, color: "#fff", flexShrink: 0 }}>
+          {user.avatar_url
+            ? <img src={user.avatar_url} alt={user.nome} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            : user.nome.charAt(0).toUpperCase()}
+        </div>
+        <div style={{ flex: 1, display: "flex", paddingBottom: 6 }}>
+          <div style={{ flex: 1, textAlign: "center" }}>
+            <div style={{ fontSize: 20, fontWeight: 900, color: "var(--txt)" }}>{userPosts.length}</div>
+            <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>posts</div>
+          </div>
+          <div style={{ flex: 1, textAlign: "center" }}>
+            <div style={{ fontSize: 20, fontWeight: 900, color: "var(--txt)" }}>{followerCount}</div>
+            <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>seguidores</div>
+          </div>
+          <div style={{ flex: 1, textAlign: "center" }}>
+            <div style={{ fontSize: 20, fontWeight: 900, color: "var(--txt)" }}>{followingCount}</div>
+            <div style={{ fontSize: 11, color: "var(--mt)", marginTop: 2 }}>seguindo</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: "16px 20px 0" }}>
+        <div style={{ fontSize: 17, fontWeight: 900, color: "var(--txt)", marginBottom: 6 }}>{user.nome}</div>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: badge.color + "20", borderRadius: 20, padding: "4px 12px" }}>
+          <span>{badge.dot}</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: badge.color }}>{badge.label}</span>
+        </div>
+        {fullProfile?.bairro && (
+          <div style={{ fontSize: 13, color: "var(--mt)", marginTop: 8, display: "flex", alignItems: "center", gap: 4 }}>
+            <PinIcon size={12} color="var(--mt)" /> {fullProfile.bairro}
+          </div>
+        )}
+        {fullProfile?.tipos_favoritos && fullProfile.tipos_favoritos.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+            {fullProfile.tipos_favoritos.map((t) => (
+              <span key={t} style={{ background: "var(--pd)", color: "var(--p)", fontSize: 11, padding: "3px 10px", borderRadius: 20, border: "0.5px solid #9D4EDD44", fontWeight: 700 }}>{t}</span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: "flex", gap: 8, padding: "14px 20px 8px" }}>
+        <button onClick={toggleFollow} style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "0.5px solid", borderColor: isFollowing ? "var(--bd)" : "var(--p)", background: isFollowing ? "transparent" : "var(--p)", color: isFollowing ? "var(--txt)" : "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+          {isFollowing ? "✓ Seguindo" : "+ Seguir"}
+        </button>
+        <button onClick={() => myId && setShowThread(true)} style={{ flex: 1, padding: "11px 0", borderRadius: 12, border: "0.5px solid var(--bd)", background: "transparent", color: "var(--txt)", fontWeight: 700, fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          Mensagem
+        </button>
+      </div>
+
+      <div style={{ borderTop: "0.5px solid var(--bd)", marginTop: 8 }} />
+
+      {userPosts.length > 0 ? (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 2, paddingBottom: 48 }}>
+          {userPosts.map((p) => (
+            <div key={p.id} style={{ aspectRatio: "1", overflow: "hidden", position: "relative" }}>
+              <img src={p.image_url} alt="post" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+              <div style={{ position: "absolute", bottom: 4, right: 4, background: "#00000080", borderRadius: 8, padding: "2px 6px", fontSize: 9, color: "#fff", fontWeight: 700 }}>{timeLeft(p.expires_at)}</div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ textAlign: "center", padding: "60px 24px", color: "var(--mt)" }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}><CameraIcon size={48} color="var(--mt)" /></div>
+          <div style={{ fontWeight: 900, fontSize: 15, color: "var(--txt)", marginBottom: 8 }}>Nenhum post ativo</div>
+          <div style={{ fontSize: 13 }}>Quando {user.nome.split(" ")[0]} postar, vai aparecer aqui!</div>
+        </div>
+      )}
+    </div>
+  );
+}
+

@@ -1,27 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Logo from "@/components/Logo";
 import RegisterScreen from "@/components/RegisterScreen";
 import HomeScreen from "@/components/HomeScreen";
+import OnboardingScreen from "@/components/OnboardingScreen";
 import { supabase } from "@/lib/supabase";
 
-type Screen = "login" | "register" | "home";
+type Screen = "onboarding" | "checking" | "login" | "register" | "home";
 
 export default function LoginPage() {
-  const [screen, setScreen] = useState<Screen>("login");
+  const [screen, setScreen] = useState<Screen>("onboarding");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [checking, setChecking] = useState(true);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) setScreen("home");
-      setChecking(false);
-    });
-  }, []);
+  async function checkSession() {
+    setScreen("checking");
+    const { data } = await supabase.auth.getSession();
+    setScreen(data.session ? "home" : "login");
+  }
 
   async function handleLogin() {
     setError("");
@@ -32,15 +31,19 @@ export default function LoginPage() {
     setLoading(false);
   }
 
-  if (checking) {
-    return <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ width: 32, height: 32, borderRadius: "50%", border: "3px solid var(--p)", borderTopColor: "transparent", animation: "spin 0.8s linear infinite" }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>;
+  if (screen === "onboarding") return <OnboardingScreen onDone={checkSession} />;
+
+  if (screen === "checking") {
+    return (
+      <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 32, height: 32, borderRadius: "50%", border: "3px solid var(--p)", borderTopColor: "transparent", animation: "spin 0.8s linear infinite" }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
   }
 
   if (screen === "register") return <RegisterScreen onBack={() => setScreen("login")} onDone={() => setScreen("home")} />;
-  if (screen === "home") return <HomeScreen onSignOut={() => setScreen("login")} />;
+  if (screen === "home") return <HomeScreen onSignOut={() => setScreen("onboarding")} />;
 
   return (
     <main style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 28px 40px" }}>
